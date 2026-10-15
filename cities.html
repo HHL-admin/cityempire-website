@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1a472a">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon-180.png">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest.json">
 <title>城池帝国 · Cities Empire</title>
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="world-city.css?v=1">
@@ -2658,6 +2658,19 @@ const Game = {
 
 // 启动游戏
 window.addEventListener('load', () => Game.init());
+
+// 注册Service Worker以支持PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('Service Worker 注册成功:', registration);
+      })
+      .catch(error => {
+        console.log('Service Worker 注册失败:', error);
+      });
+  });
+}
 </script>
 <script src="city3d.js?v=13"></script>
     <script src="world-city.js?v=17"></script>
