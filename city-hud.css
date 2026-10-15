@@ -1,0 +1,205 @@
+/* 城池界面 HUD：3D 城池铺满舞台，界面用「漆木 + 金边 + 朱印」浮在画面上，
+ * 与建筑上的牌匾标签同一套材质。舞台基准 1280×720。 */
+[data-scene="city"]{
+  --lacquer:#2b1a12; --lacquer-2:#3d2618; --gold:#d8b26a; --gold-soft:#d8b26a66;
+  --paper:#f3e6c8; --ink:#3a2616; --cinnabar:#b5301e; --jade:#7fb38a;
+  font-family:"STKaiti","KaiTi","Kaiti SC","Songti SC","SimSun",serif;
+  background:#6f8fa8;
+}
+[data-scene="city"] .hud-stage{position:absolute;inset:0;flex:none}
+[data-scene="city"] .hud-stage::after{ /* 四周压暗，让 HUD 文字更易读 */
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(#1a0f0a8c,transparent 18%,transparent 70%,#1a0f0aa6),
+             radial-gradient(ellipse at 50% 55%,transparent 55%,#1a0f0a55);
+}
+[data-scene="city"] .city3d-labels{z-index:2}
+[data-scene="city"] .city3d-status{z-index:20;background:#2b1a12;color:var(--paper);font-size:16px;letter-spacing:2px}
+
+/* 共用漆木面板 */
+.hud-plaque,.hud-resources,.hud-cam,.hud-detail,.hud-dock{
+  position:absolute;z-index:5;
+  background:linear-gradient(#3d2618f2,#2b1a12f2);
+  border:1px solid var(--gold-soft);
+  box-shadow:0 6px 18px #0006,inset 0 1px #f3d79a33;
+  color:var(--paper);
+}
+
+/* 左上牌匾 */
+.hud-plaque{left:20px;top:16px;display:flex;align-items:center;gap:14px;padding:10px 22px 10px 10px;border-radius:4px}
+.hud-seal{width:52px;height:52px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--cinnabar);border-radius:6px;color:#fbe7c2;box-shadow:inset 0 0 0 2px #fbe7c255,0 2px 6px #0006;line-height:1}
+.hud-seal small{font-size:11px;opacity:.85}
+.hud-seal b{font-size:24px;margin-top:2px}
+.hud-city-name{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:26px;font-weight:700;letter-spacing:4px;color:#f6dfa6;text-shadow:0 2px 0 #0008;line-height:1.1}
+.hud-shield{margin-top:5px;font-size:13px;color:var(--jade);letter-spacing:1px}
+.hud-shield::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:7px;vertical-align:1px;box-shadow:0 0 6px currentColor}
+.hud-shield.is-ended{color:#e88a74}
+
+/* 顶部资源条 */
+.hud-resources{left:50%;top:16px;transform:translateX(-50%);display:flex;align-items:stretch;border-radius:4px;padding:0 6px}
+.hud-res-group{display:flex}
+.hud-res-people{border-left:1px solid var(--gold-soft);margin-left:4px;padding-left:4px}
+.hud-res{position:relative;display:flex;align-items:center;gap:8px;padding:10px 12px 12px;min-width:96px}
+.hud-glyph{width:28px;height:28px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-size:15px;color:var(--ink);background:radial-gradient(circle at 35% 30%,#fbe7b8,#c99a4c);box-shadow:0 1px 3px #0008}
+.hud-res-people .hud-glyph{background:radial-gradient(circle at 35% 30%,#e7dcc6,#9d8d72)}
+.hud-res-num{display:flex;flex-direction:column;line-height:1.15}
+.hud-res-num b{font:600 17px "Microsoft YaHei",sans-serif;color:#fff1cf;font-variant-numeric:tabular-nums}
+.hud-res-num small{font-size:11px;color:#b9cfa4;font-family:"Microsoft YaHei",sans-serif}
+.hud-res-people .hud-res-num small{color:#c9b897}
+.hud-res-fill{position:absolute;left:14px;bottom:5px;height:2px;max-width:calc(100% - 28px);background:var(--gold);opacity:.55;border-radius:1px}
+.hud-res.is-full .hud-res-num small{color:#f0a070}
+.hud-res.is-full .hud-res-fill{background:#f0a070;opacity:.9}
+
+/* 右上镜头与系统按钮 */
+.hud-corner{position:absolute;right:20px;top:16px;z-index:5;display:flex;gap:10px}
+.hud-cam{position:static;display:flex;border-radius:4px;overflow:hidden}
+.hud-cam button{width:40px;height:40px;border:0;border-right:1px solid #d8b26a33;background:transparent;color:var(--paper);
+  font:16px "STKaiti","KaiTi",serif;cursor:pointer}
+.hud-cam button:last-child{border-right:0}
+.hud-cam button:hover{background:#ffffff14}
+.hud-cam button[aria-pressed="true"]{background:var(--cinnabar);color:#fff3d6}
+.hud-sys button{font-family:"Microsoft YaHei",sans-serif;font-size:15px}
+/* 右侧指令：竖排令牌 */
+.hud-commands{position:absolute;right:20px;top:104px;bottom:16px;z-index:5;display:flex;flex-direction:column;justify-content:center;gap:10px;
+  overflow-y:auto;scrollbar-width:none}
+.hud-commands::-webkit-scrollbar{display:none}
+.hud-cmd{width:72px;height:72px;border-radius:50%;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:2px solid var(--gold);color:var(--paper);
+  background:radial-gradient(circle at 50% 35%,#4a2e1c,#24150d);box-shadow:0 4px 12px #0006,inset 0 0 0 3px #2b1a12,inset 0 0 0 4px #d8b26a55;
+  transition:transform .12s ease}
+.hud-cmd span{font-size:18px;letter-spacing:1px;color:#f6dfa6}
+.hud-cmd small{font:10px "Microsoft YaHei",sans-serif;color:#cdb893}
+.hud-cmd:hover{transform:scale(1.05)}
+.hud-cmd:active{transform:scale(.97)}
+.hud-cmd-main{background:radial-gradient(circle at 50% 35%,#c8402a,#7d1d12)}
+.hud-cmd-main small{color:#f6d4b0}
+
+/* 底部：选中建筑详情 */
+.hud-bottom{position:absolute;left:20px;right:112px;bottom:16px;z-index:5;display:flex;align-items:flex-end;gap:12px}
+.hud-detail{position:relative;width:228px;flex-shrink:0;padding:10px 13px;border-radius:4px;
+  background:linear-gradient(#f6ead0f5,#e6d3aaf5);color:var(--ink);border-color:#8a6a3c;
+  overflow:hidden;
+  transition:width .22s ease,padding .22s ease,opacity .22s ease,transform .22s ease}
+.hud-detail::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;background:var(--cinnabar)}
+.hud-detail-head{display:flex;align-items:baseline;justify-content:space-between;padding-right:20px}
+.hud-detail-head b{font-size:18px;letter-spacing:1px}
+.hud-detail-head span{font-size:12px;color:#8a5a2a}
+.hud-detail p{font:11px/1.5 "Microsoft YaHei",sans-serif;color:#5b4128;margin-top:3px}
+.hud-cost{display:flex;flex-wrap:wrap;gap:4px 10px;color:#6c5034}
+.hud-cost span{font-variant-numeric:tabular-nums}
+.hud-cost .lack{color:#b5301e;font-weight:600}
+.hud-cost-time{color:#8a5a2a}
+
+/* 跨级升级：目标等级步进器 */
+.hud-upgrade-target{display:flex;align-items:center;gap:6px;margin-top:7px}
+.hud-step{width:26px;height:24px;flex-shrink:0;padding:0;border-radius:3px;border:1px solid #6b4a26;
+  background:#efe0bd;color:var(--ink);cursor:pointer;
+  font:15px/1 "Microsoft YaHei",sans-serif;
+  display:flex;align-items:center;justify-content:center}
+.hud-step:hover:not(:disabled){background:#f8ecd2}
+.hud-step:disabled{opacity:.4;cursor:not-allowed}
+.hud-target-label{flex:1;min-width:0;text-align:center;white-space:nowrap;
+  font:11px/1.4 "Microsoft YaHei",sans-serif;color:#6c5034}
+.hud-target-label b{font-size:13px;color:#b5301e;font-variant-numeric:tabular-nums}
+
+/* 面板收起/展开：仅由用户手动触发，任何情况下都不会自动收起 */
+.hud-detail > *:not(.hud-detail-toggle){transition:opacity .15s ease}
+.hud-detail-toggle{position:absolute;right:6px;top:6px;z-index:2;width:20px;height:20px;padding:0;
+  border:0;border-radius:3px;background:transparent;color:#8a5a2a;cursor:pointer;
+  font:15px/1 "Microsoft YaHei",sans-serif;display:flex;align-items:center;justify-content:center}
+.hud-detail-toggle::before{content:"‹"}
+.hud-detail-toggle:hover{background:#00000012}
+.hud-detail.is-collapsed{width:40px;padding-left:6px;padding-right:6px}
+.hud-detail.is-collapsed > *:not(.hud-detail-toggle){opacity:0;pointer-events:none}
+.hud-detail.is-collapsed .hud-detail-toggle::before{content:"›"}
+
+.hud-detail-actions{display:flex;gap:8px;margin-top:8px}
+.hud-btn{flex:1;height:34px;border-radius:3px;cursor:pointer;font:15px "STKaiti","KaiTi",serif;letter-spacing:3px;
+  border:1px solid #6b4a26;background:#efe0bd;color:var(--ink)}
+.hud-btn:hover{background:#f8ecd2}
+.hud-btn-red{flex:1.4;background:linear-gradient(#c23a24,#8f2314);border-color:#6d180d;color:#fff0d0;box-shadow:inset 0 1px #e8735a}
+.hud-btn-red:hover{background:linear-gradient(#d0452e,#9c2a19)}
+.hud-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* 底部：建筑栏 */
+.hud-dock{position:static;flex:1;min-width:0;display:flex;gap:4px;padding:6px;border-radius:4px}
+.hud-tile{flex:1;min-width:0;position:relative;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  border:1px solid transparent;border-radius:3px;background:transparent;color:var(--paper);cursor:pointer;font-family:inherit}
+.hud-tile:hover{background:#ffffff10}
+.hud-tile[aria-pressed="true"]{background:linear-gradient(#b8321f,#7d1d12);border-color:#f0cf7c}
+.hud-tile-name{font-size:14px;letter-spacing:1px;white-space:nowrap;color:#f6dfa6}
+.hud-tile[aria-pressed="true"] .hud-tile-name{color:#fff4d2}
+.hud-tile-lv{font:10px "Microsoft YaHei",sans-serif;color:#c8b48f}
+.hud-tile[aria-pressed="true"] .hud-tile-lv{color:#f8d9b4}
+.hud-tile.is-upgrading .hud-tile-lv{color:#f0c060}
+.hud-tile-bar{position:absolute;left:10px;right:10px;bottom:5px;height:2px;background:#0005}
+.hud-tile-bar span{display:block;height:100%;background:#f0c060}
+
+.hud-hint{position:absolute;left:0;right:0;bottom:88px;z-index:4;text-align:center;pointer-events:none;
+  font:11px "Microsoft YaHei",sans-serif;color:#fff6dfb3;text-shadow:0 1px 4px #000}
+
+[data-scene="city"] button:focus-visible{outline:2px solid #ffe08a;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.hud-cmd{transition:none}
+  .hud-detail,.hud-detail > *:not(.hud-detail-toggle){transition:none}}
+
+/* 城池3D视图装饰层：填充空白区域，与古风漆木主题融合 */
+.city3d-decor{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+
+/* 上方云纹装饰带：渐变叠加+祥云图案 */
+.decor-clouds-top{position:absolute;left:0;right:0;top:0;height:180px;
+  background:linear-gradient(180deg,#1a0f0acc 0%,#2b1a1288 35%,transparent 100%);
+  opacity:.75}
+.decor-clouds-top::before{content:"";position:absolute;inset:0;
+  background-image:radial-gradient(ellipse 140px 45px at 18% 25%,#f3e6c822 0%,transparent 50%),
+                   radial-gradient(ellipse 160px 50px at 52% 18%,#d8b26a1a 0%,transparent 50%),
+                   radial-gradient(ellipse 130px 42px at 82% 28%,#f3e6c818 0%,transparent 50%),
+                   radial-gradient(ellipse 110px 38px at 38% 12%,#d8b26a12 0%,transparent 50%);
+  opacity:.85}
+
+/* 左侧山水剪影：层叠远山轮廓 */
+.decor-mountains-left{position:absolute;left:0;top:120px;bottom:120px;width:220px;
+  background:linear-gradient(90deg,#1a0f0a66 0%,transparent 100%);
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 480" preserveAspectRatio="none"><path d="M0 480 V 380 Q 15 350 35 340 T 70 310 Q 90 290 110 280 T 145 250 Q 160 235 175 225 T 200 200 Q 215 180 220 150 V 0 H 0 Z" fill="black" opacity="0.4"/><path d="M0 480 V 420 Q 20 400 45 390 T 85 365 Q 105 350 125 340 T 155 315 Q 170 300 185 285 T 210 255 Q 220 235 220 210 V 0 H 0 Z" fill="black" opacity="0.25"/></svg>') left center / 100% 100% no-repeat;
+  mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 480" preserveAspectRatio="none"><path d="M0 480 V 380 Q 15 350 35 340 T 70 310 Q 90 290 110 280 T 145 250 Q 160 235 175 225 T 200 200 Q 215 180 220 150 V 0 H 0 Z" fill="black" opacity="0.4"/><path d="M0 480 V 420 Q 20 400 45 390 T 85 365 Q 105 350 125 340 T 155 315 Q 170 300 185 285 T 210 255 Q 220 235 220 210 V 0 H 0 Z" fill="black" opacity="0.25"/></svg>') left center / 100% 100% no-repeat}
+
+/* 右侧山水剪影：与左侧对称 */
+.decor-mountains-right{position:absolute;right:0;top:120px;bottom:120px;width:220px;
+  background:linear-gradient(270deg,#1a0f0a66 0%,transparent 100%);
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 480" preserveAspectRatio="none"><path d="M220 480 V 380 Q 205 350 185 340 T 150 310 Q 130 290 110 280 T 75 250 Q 60 235 45 225 T 20 200 Q 5 180 0 150 V 0 H 220 Z" fill="black" opacity="0.4"/><path d="M220 480 V 420 Q 200 400 175 390 T 135 365 Q 115 350 95 340 T 65 315 Q 50 300 35 285 T 10 255 Q 0 235 0 210 V 0 H 220 Z" fill="black" opacity="0.25"/></svg>') right center / 100% 100% no-repeat;
+  mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 480" preserveAspectRatio="none"><path d="M220 480 V 380 Q 205 350 185 340 T 150 310 Q 130 290 110 280 T 75 250 Q 60 235 45 225 T 20 200 Q 5 180 0 150 V 0 H 220 Z" fill="black" opacity="0.4"/><path d="M220 480 V 420 Q 200 400 175 390 T 135 365 Q 115 350 95 340 T 65 315 Q 50 300 35 285 T 10 255 Q 0 235 0 210 V 0 H 220 Z" fill="black" opacity="0.25"/></svg>') right center / 100% 100% no-repeat}
+
+/* 四角边框纹样：古朴卷云纹 */
+.decor-corner{position:absolute;width:90px;height:90px;opacity:.45;
+  background-size:contain;background-repeat:no-repeat;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90"><path d="M2 2 Q 2 25 12 35 T 35 58 Q 48 65 58 78 T 78 88 L 88 88 L 88 78 Q 75 78 65 68 T 48 48 Q 38 38 28 28 T 12 8 L 2 2 Z" fill="%23d8b26a" opacity="0.6"/><path d="M8 2 Q 18 12 25 22 T 38 42 Q 48 55 58 62 T 78 75 L 88 75 L 88 68 Q 78 65 68 58 T 52 42 Q 42 32 32 22 T 15 5 L 8 2 Z" fill="%23f3e6c8" opacity="0.4"/></svg>')}
+.decor-corner-tl{top:0;left:0}
+.decor-corner-tr{top:0;right:0;transform:scaleX(-1)}
+.decor-corner-bl{bottom:0;left:0;transform:scaleY(-1)}
+.decor-corner-br{bottom:0;right:0;transform:scale(-1)}
+
+@media (prefers-reduced-motion:reduce){.decor-clouds-top::before{animation:none}}
+
+/* ===== 参观他城：从世界地图进入既有城池 ===== */
+.hud-visit-banner{
+  position:absolute;left:50%;top:74px;transform:translateX(-50%);z-index:6;
+  display:flex;align-items:center;gap:14px;padding:9px 10px 9px 18px;border-radius:4px;
+  background:linear-gradient(#3d2618f2,#2b1a12f2);
+  border:1px solid var(--gold-soft);
+  box-shadow:0 6px 18px #0006,inset 0 1px #f3d79a33;
+  color:var(--paper);font-size:15px;letter-spacing:2px;white-space:nowrap;
+}
+.hud-visit-banner[hidden]{display:none}
+.hud-visit-banner b{color:var(--gold);font-weight:700}
+.hud-visit-banner button{
+  padding:7px 16px;border-radius:3px;cursor:pointer;letter-spacing:3px;
+  font:14px "STKaiti","KaiTi",serif;color:#fbe7c2;
+  background:var(--cinnabar);border:1px solid #7c1f12;box-shadow:inset 0 1px #fbe7c255;
+}
+.hud-visit-banner button:hover{filter:brightness(1.12)}
+/* 参观模式：隐藏本城专属的经营操作，只保留观看与出城 */
+[data-scene="city"].visiting .hud-bottom,
+[data-scene="city"].visiting .hud-shield,
+[data-scene="city"].visiting .hud-seal,
+[data-scene="city"].visiting #recruitBtn,
+[data-scene="city"].visiting #trainBtn{display:none}

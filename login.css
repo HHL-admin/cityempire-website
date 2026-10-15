@@ -1,0 +1,134 @@
+/* 城池帝国 · 登录界面（叠在加载画面的战火背景上；单位为 1280×720 设计像素） */
+.intro-ui{font-family:"STKaiti","KaiTi","楷体","Microsoft YaHei",serif;color:#f3e2bd}
+/* 超宽屏可见高度小：面板贴底不被裁掉；内容高于可用空间时面板内部滚动（保证提交按钮始终可达） */
+.login-panel{position:absolute;left:50%;top:min(calc(var(--title-y) + 140px), calc(100% - 330px));width:420px;margin-left:-210px;
+  max-height:min(calc(100% - var(--title-y) - 154px), 316px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+  padding:24px 34px 18px;pointer-events:auto;text-align:center;
+  background:linear-gradient(180deg,rgba(26,8,6,.78),rgba(14,4,4,.88));
+  border:1px solid rgba(214,166,84,.55);border-radius:4px;
+  box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,210,130,.08),inset 0 0 30px rgba(140,30,10,.25);
+  opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.login-panel.show{opacity:1;transform:none}
+/* 四角云纹装饰 */
+.login-panel::before,.login-panel::after{content:"";position:absolute;width:22px;height:22px;border:2px solid #c99a46;pointer-events:none}
+.login-panel::before{left:-1px;top:-1px;border-right:0;border-bottom:0}
+.login-panel::after{right:-1px;bottom:-1px;border-left:0;border-top:0}
+.login-heading{font-size:15px;letter-spacing:6px;color:#e8c98a;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.login-heading::before,.login-heading::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#b8893e,transparent)}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:52px;margin:0 0 12px;
+  border:0;border-radius:3px;cursor:pointer;font:600 18px/1 "Microsoft YaHei",sans-serif;letter-spacing:2px;color:#fff;
+  box-shadow:0 4px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.25);transition:transform .12s,filter .12s}
+.login-btn svg{width:26px;height:26px;flex:none}
+.login-btn:hover{filter:brightness(1.08)}
+.login-btn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.login-btn[disabled]{filter:grayscale(.5) brightness(.75);cursor:wait}
+.login-btn.wechat{background:linear-gradient(#2fc36a,#15a14d)}
+.login-btn.qq{background:linear-gradient(#3aa8f0,#1683d2)}
+.login-btn.enter{background:linear-gradient(#d7452b,#9c2414);font-family:inherit;font-size:22px;letter-spacing:8px;border:1px solid #f0c06a}
+.login-btn.dev{background:linear-gradient(#6b5a45,#4a3c2c);font-size:14px;min-height:40px}
+.login-btn:focus-visible,.login-link:focus-visible,.login-agree input:focus-visible{outline:2px solid #ffe08a;outline-offset:3px}
+.login-user{display:flex;align-items:center;gap:14px;margin-bottom:16px;text-align:left}
+.login-avatar{width:54px;height:54px;border-radius:50%;border:2px solid #d6a654;background:#3a160e center/cover no-repeat;flex:none;
+  display:flex;align-items:center;justify-content:center;font-size:24px;color:#f3d79c}
+.login-user b{display:block;font-size:20px;color:#ffe2a6;font-weight:600}
+.login-user small{font-size:12px;color:#c7a67a}
+.login-links{display:flex;justify-content:center;gap:22px;margin-top:4px}
+.login-link{background:none;border:0;padding:6px 2px;color:#d9b884;font-size:14px;font-family:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:4px}
+.login-agree{display:flex;align-items:flex-start;justify-content:center;gap:8px;margin-top:12px;font-size:12px;line-height:1.6;color:#bfa27a;text-align:left}
+.login-agree input{width:16px;height:16px;margin-top:2px;accent-color:#c9452c;flex:none}
+.login-agree a{color:#f0c77a}
+.login-agree.shake{animation:login-shake .4s}
+@keyframes login-shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.login-msg{min-height:20px;margin-top:8px;font-size:13px;color:#ffb48a}
+.login-msg.ok{color:#bfe3a0}
+.login-note{margin:0 0 10px;font-size:12px;line-height:1.5;color:#c7a67a}
+@media(prefers-reduced-motion:reduce){.login-panel{transition:none}.login-agree.shake{animation:none}}
+
+/* ===== 账号标签页（登录 / 注册 / 游客） ===== */
+.login-tabs{display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid rgba(184,137,62,.5)}
+.login-tab{flex:1;padding:9px 4px;background:none;border:0;border-bottom:2px solid transparent;color:#c7a67a;
+  font:14px/1 "Microsoft YaHei",sans-serif;letter-spacing:2px;cursor:pointer;transition:color .15s,border-color .15s}
+.login-tab:hover{color:#f0d8a8}
+.login-tab.active{color:#ffe2a6;border-bottom-color:#d6a654}
+.login-form{display:flex;flex-direction:column;gap:10px;text-align:left}
+.login-field{display:flex;align-items:center;gap:10px;background:rgba(0,0,0,.32);border:1px solid rgba(184,137,62,.55);border-radius:3px;padding:0 12px;min-height:46px}
+.login-field:focus-within{border-color:#e2c485;box-shadow:0 0 0 2px rgba(226,196,133,.18)}
+.login-field svg{width:18px;height:18px;flex:none;opacity:.7}
+.login-field input{flex:1;min-width:0;height:44px;border:0;background:none;color:#f3e2bd;font:15px "Microsoft YaHei",sans-serif;outline:none}
+.login-field input::placeholder{color:#8f7757}
+.login-submit{margin-top:6px;background:linear-gradient(#d7452b,#9c2414);border:1px solid #f0c06a;color:#fff4d2;
+  min-height:50px;border-radius:3px;font:600 17px/1 "Microsoft YaHei",sans-serif;letter-spacing:4px;cursor:pointer;
+  box-shadow:0 4px 0 rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.22);transition:transform .12s,filter .12s}
+.login-submit:hover{filter:brightness(1.08)}
+.login-submit:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.35)}
+.login-submit[disabled]{filter:grayscale(.5) brightness(.75);cursor:wait}
+.login-inline-links{display:flex;justify-content:space-between;margin-top:2px}
+.login-help{font-size:12px;line-height:1.6;color:#bfa27a;background:rgba(0,0,0,.22);border:1px solid rgba(184,137,62,.35);border-radius:3px;padding:9px 11px}
+.login-help b{color:#f0c77a}
+.login-recovery{display:flex;flex-direction:column;gap:8px;margin-top:10px;padding:12px;background:rgba(0,0,0,.28);
+  border:1px dashed rgba(214,166,84,.6);border-radius:4px;text-align:center}
+.login-recovery code{font-size:19px;letter-spacing:2px;color:#ffe2a6;font-family:"Consolas",monospace;word-break:break-all}
+.login-recovery-actions{display:flex;gap:8px}
+.login-mini-btn{flex:1;padding:8px;border:1px solid #b8893e;border-radius:3px;background:linear-gradient(#6b5a45,#4a3c2c);
+  color:#f3e2bd;font:13px "Microsoft YaHei",sans-serif;cursor:pointer}
+.login-mini-btn:hover{filter:brightness(1.12)}
+.login-avatar-pick{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px}
+.login-avatar-pick button{padding:0;border:2px solid transparent;border-radius:6px;background:rgba(0,0,0,.3);cursor:pointer;
+  aspect-ratio:1;overflow:hidden;transition:border-color .15s,transform .12s}
+.login-avatar-pick button:hover{transform:translateY(-1px)}
+.login-avatar-pick button[aria-pressed="true"]{border-color:#f0c06a;box-shadow:0 0 8px rgba(240,192,106,.5)}
+.login-avatar-pick svg{display:block;width:100%;height:100%}
+
+/* ===== 玩家资料面板 ===== */
+.profile-root{position:fixed;inset:0;z-index:9600;display:flex;align-items:center;justify-content:center;
+  font-family:"STKaiti","KaiTi","楷体","Microsoft YaHei",serif;color:#f3e2bd}
+.profile-layer{position:absolute;inset:0;background:rgba(8,4,2,.62)}
+.profile-panel{position:relative;width:min(560px,92vw);max-height:88vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,rgba(30,12,8,.98),rgba(16,6,5,.99));border:1px solid rgba(214,166,84,.6);border-radius:6px;
+  box-shadow:0 18px 60px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,210,130,.08);
+  opacity:0;transform:translateY(16px) scale(.98);transition:opacity .24s ease,transform .24s ease}
+.profile-root.show .profile-panel{opacity:1;transform:none}
+.profile-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(184,137,62,.4)}
+.profile-head h2{margin:0;font-size:18px;letter-spacing:4px;color:#e8c98a}
+.profile-x{width:34px;height:34px;border:0;border-radius:4px;background:rgba(255,255,255,.08);color:#e8dcc8;font-size:22px;line-height:1;cursor:pointer}
+.profile-x:hover{background:rgba(255,255,255,.18)}
+.profile-body{padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.profile-top{display:flex;align-items:center;gap:14px}
+.profile-avatar-preview{width:64px;height:64px;flex:none;border-radius:50%;border:2px solid #d6a654;background:#3a160e center/cover no-repeat;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.profile-avatar-preview svg{display:block;width:100%;height:100%}
+.profile-top-info b{display:block;font-size:19px;color:#ffe2a6}
+.profile-top-info small{display:block;font-size:12px;color:#c7a67a;margin-top:3px}
+.profile-field{display:flex;flex-direction:column;gap:6px}
+.profile-field>span{font-size:13px;color:#c7a67a;letter-spacing:1px}
+.profile-field input{height:44px;padding:0 12px;border:1px solid rgba(184,137,62,.55);border-radius:3px;background:rgba(0,0,0,.32);
+  color:#f3e2bd;font:15px "Microsoft YaHei",sans-serif;outline:none}
+.profile-field input:focus{border-color:#e2c485;box-shadow:0 0 0 2px rgba(226,196,133,.18)}
+.profile-label{font-size:13px;color:#e8c98a;letter-spacing:2px;padding-bottom:6px;border-bottom:1px solid rgba(184,137,62,.3)}
+.profile-avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.profile-avatar-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:5px;border:2px solid transparent;border-radius:6px;
+  background:rgba(0,0,0,.28);cursor:pointer;transition:border-color .15s,transform .12s}
+.profile-avatar-opt:hover{transform:translateY(-2px)}
+.profile-avatar-opt[aria-pressed="true"]{border-color:#f0c06a;box-shadow:0 0 10px rgba(240,192,106,.45);background:rgba(255,210,130,.08)}
+.profile-avatar-img{display:block;width:100%;aspect-ratio:1;border-radius:5px;overflow:hidden}
+.profile-avatar-img svg{display:block;width:100%;height:100%}
+.profile-avatar-opt em{font-size:11px;font-style:normal;color:#c7a67a}
+.profile-guest{display:flex;flex-direction:column;gap:12px;padding:14px;margin-top:4px;border:1px solid rgba(184,137,62,.4);border-radius:5px;background:rgba(0,0,0,.2)}
+.profile-recovery{display:flex;align-items:center;gap:10px}
+.profile-recovery code{flex:1;font-family:"Consolas",monospace;font-size:18px;letter-spacing:2px;color:#ffe2a6;word-break:break-all}
+.profile-copy{padding:8px 14px;border:1px solid #b8893e;border-radius:3px;background:linear-gradient(#6b5a45,#4a3c2c);color:#f3e2bd;font:13px "Microsoft YaHei",sans-serif;cursor:pointer;flex:none}
+.profile-copy:hover{filter:brightness(1.12)}
+.profile-hint{margin:0;font-size:12px;line-height:1.6;color:#bfa27a}
+.profile-upgrade-toggle{padding:10px;border:1px solid #f0c06a;border-radius:3px;background:linear-gradient(#946039,#6f4025);color:#f8e2ad;
+  font:14px "Microsoft YaHei",sans-serif;letter-spacing:2px;cursor:pointer}
+.profile-upgrade-toggle:hover{filter:brightness(1.1)}
+.profile-upgrade-form{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.profile-btn{padding:12px 22px;border:1px solid #f0c06a;border-radius:3px;background:linear-gradient(#d7452b,#9c2414);color:#fff4d2;
+  font:600 15px "Microsoft YaHei",sans-serif;letter-spacing:2px;cursor:pointer}
+.profile-btn.ghost{background:linear-gradient(#4a3c2c,#332a1e);border-color:#b8893e;color:#e8d8b8}
+.profile-btn:hover{filter:brightness(1.08)}
+.profile-btn[disabled]{filter:grayscale(.5) brightness(.75);cursor:wait}
+.profile-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid rgba(184,137,62,.4)}
+.profile-msg{min-height:18px;padding:0 22px 12px;font-size:13px;color:#ffb48a}
+.profile-msg.ok{color:#bfe3a0}
+@media(prefers-reduced-motion:reduce){.profile-panel{transition:none}}
+@media(max-width:560px){.profile-avatar-grid,.login-avatar-pick{grid-template-columns:repeat(4,1fr)}}

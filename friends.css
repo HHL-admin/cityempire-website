@@ -1,0 +1,349 @@
+/* 好友系统样式 - 三国风格 */
+
+/* 好友面板容器 */
+.friends-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  background: linear-gradient(135deg, #2c1810 0%, #1a0f08 100%);
+  border: 3px solid #d4af37;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.6), inset 0 0 30px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.friends-panel.visible {
+  display: flex;
+}
+
+/* 面板头部 */
+.friends-header {
+  background: linear-gradient(to bottom, #d4af37, #b8941f);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #d4af37;
+}
+
+.friends-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c1810;
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
+
+.friends-close {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid #8b6914;
+  color: #fff;
+  font-size: 24px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.friends-close:hover {
+  background: rgba(0, 0, 0, 0.5);
+  transform: scale(1.1);
+}
+
+/* 标签页 */
+.friends-tabs {
+  display: flex;
+  background: #1a0f08;
+  border-bottom: 2px solid #d4af37;
+  padding: 0 10px;
+}
+
+.friends-tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  color: #d4af37;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.friends-tab:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.friends-tab.active {
+  color: #fff;
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.friends-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 3px;
+  background: #d4af37;
+}
+
+.friends-tab .badge {
+  display: inline-block;
+  background: #ff4757;
+  color: #fff;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* 搜索栏 */
+.friends-search {
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+  display: none;
+}
+
+.friends-search.visible {
+  display: block;
+}
+
+.friends-search-input {
+  width: 100%;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid #d4af37;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: all 0.3s;
+}
+
+.friends-search-input:focus {
+  border-color: #f0d56d;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.friends-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* 内容区域 */
+.friends-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.friends-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.friends-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.friends-content::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+
+.friends-content::-webkit-scrollbar-thumb:hover {
+  background: #f0d56d;
+}
+
+/* 好友列表项 */
+.friend-item {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(0, 0, 0, 0.3) 100%);
+  border: 2px solid rgba(212, 175, 55, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s;
+}
+
+.friend-item:hover {
+  border-color: #d4af37;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(0, 0, 0, 0.4) 100%);
+  transform: translateX(4px);
+}
+
+.friend-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid #d4af37;
+  object-fit: cover;
+  background: #1a0f08;
+}
+
+.friend-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: #d4af37;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.friend-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #95a5a6;
+}
+
+.friend-status-dot.online {
+  background: #2ecc71;
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.8);
+  animation: pulse-online 2s ease-out infinite;
+}
+
+@keyframes pulse-online {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.friend-details {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.friend-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.friend-btn {
+  padding: 8px 16px;
+  border: 2px solid #d4af37;
+  border-radius: 6px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4af37;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.friend-btn:hover {
+  background: rgba(212, 175, 55, 0.3);
+  transform: scale(1.05);
+}
+
+.friend-btn.primary {
+  background: linear-gradient(135deg, #d4af37, #b8941f);
+  color: #2c1810;
+  border-color: #f0d56d;
+}
+
+.friend-btn.primary:hover {
+  background: linear-gradient(135deg, #f0d56d, #d4af37);
+}
+
+.friend-btn.danger {
+  border-color: #ff4757;
+  color: #ff4757;
+}
+
+.friend-btn.danger:hover {
+  background: rgba(255, 71, 87, 0.2);
+}
+
+/* 空状态 */
+.friends-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.friends-empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.friends-empty-text {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.friends-empty-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* 遮罩层 */
+.friends-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  display: none;
+}
+
+.friends-overlay.visible {
+  display: block;
+}
+
+/* 响应式 */
+@media (max-width: 600px) {
+  .friends-panel {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .friends-title {
+    font-size: 20px;
+  }
+
+  .friend-item {
+    padding: 10px;
+  }
+
+  .friend-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .friend-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

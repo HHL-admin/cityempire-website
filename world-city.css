@@ -1,0 +1,193 @@
+/* Real map + interactive 3D city. The original 1280 × 720 stage stays intact. */
+[data-scene="city"] .top-bar,[data-scene="world"] .top-bar{background:#132820;border-bottom:1px solid #49604a;padding:0 22px;height:60px;flex-shrink:0}
+[data-scene="city"] .left-panel{width:196px;flex-shrink:0;padding:22px 16px;background:#182b24;border-right:1px solid #3f5042}
+[data-scene="city"] .right-panel{width:212px;flex-shrink:0;padding:22px 16px;background:#182b24;border-left:1px solid #3f5042}
+[data-scene="city"] .center-view{padding:0;min-width:0}
+[data-scene="city"] .city-view{padding:0;border:0;border-radius:0;overflow:hidden;background:#abb49c}
+[data-scene="city"] .resource-item{flex-wrap:wrap;gap:5px;border:0;border-bottom:1px solid #405044;border-radius:0;background:transparent;padding:14px 0;margin:0;font-size:14px}
+[data-scene="city"] .resource-value{font-size:19px;margin-left:auto}
+[data-scene="city"] .resource-prod{width:100%;font-size:11px;text-align:right;color:#9fb898}
+[data-scene="city"] .section-title{font-size:15px;letter-spacing:1px;color:#e0c19a;border-color:#465441}
+[data-scene="city"] .action-button{padding:13px 9px;font:500 14px/1.3 "Microsoft YaHei",sans-serif;border:1px solid #687553;background:#2d4935;color:#efe4d2;min-height:44px}
+[data-scene="city"] .action-button:hover{background:#425d42}
+[data-scene="city"] .action-button.danger{background:transparent;border-color:#706152;color:#d6baa2}
+[data-scene="city"] .action-section{margin-bottom:26px}
+.selected-building-detail{padding:2px 0 12px;line-height:1.7}
+.selected-building-detail b{font-size:17px;font-weight:600;color:#f2deba}
+.selected-building-detail span{float:right;font-size:12px;color:#d4a574}
+.selected-building-detail p{font-size:12px;color:#b8b69d;min-height:36px;margin-top:8px}
+.city3d-viewport{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;background:#7d9bb4}
+.city3d-viewport canvas{display:block;width:100%;height:100%;position:absolute;inset:0;cursor:grab;touch-action:none}
+.city3d-viewport canvas:active{cursor:grabbing}
+.city-scene-heading{position:absolute;left:22px;top:22px;z-index:2;pointer-events:none;display:flex;flex-direction:column;gap:5px;color:#233728;text-shadow:0 1px 4px #fff9}
+.city-scene-heading span{font-size:21px;font-weight:600;letter-spacing:2px}
+.city-scene-heading small{font-size:12px}
+.city-camera-controls{position:absolute;top:18px;right:18px;display:flex;z-index:3;box-shadow:0 3px 12px #16251c20;border-radius:4px;overflow:hidden}
+.city-camera-controls button{font:13px "Microsoft YaHei",sans-serif;color:#293b2b;background:#f5f3e7ed;border:0;border-right:1px solid #b9bea9;padding:10px 13px;min-height:40px;cursor:pointer}
+.city-camera-controls button[aria-pressed="true"]{color:#fff4dc;background:#3c5d43}
+.city-camera-help{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:#fff9e5;pointer-events:none;text-shadow:0 1px 5px #142a17,0 0 4px #142a17;background:linear-gradient(transparent,#25392230);padding:8px}
+.city-compass{position:absolute;bottom:28px;right:22px;z-index:2;width:36px;text-align:center;color:#faf5e1;font-size:12px;text-shadow:0 1px 3px #223b26}
+.city-compass i{display:block;width:0;height:0;border:8px solid transparent;border-bottom:26px solid #faf5e1;margin:-6px auto 0;filter:drop-shadow(0 2px 3px #243c27)}
+.city3d-labels{position:absolute;inset:0;pointer-events:none;z-index:2}
+.city-building-label{position:absolute;transform:translate(-50%,calc(-100% - 22px));transition:opacity .2s;padding:5px 11px;border-radius:3px;white-space:nowrap;background:linear-gradient(#3a2418f0,#24160ef0);color:#f3dfae;box-shadow:0 3px 10px #0007,inset 0 0 0 1px #c9a25a66;font-size:12px;letter-spacing:1px;pointer-events:auto;cursor:pointer;border:1px solid #b88a3e;font-family:inherit}
+/* 引线 + 落点：引线尖端正好落在建筑屋顶的锚点上，旋转视角也不会"漂"到别的建筑 */
+.city-building-label::after{content:"";position:absolute;width:2px;height:21px;margin-left:-1px;background:linear-gradient(#e0bb6e,#e0bb6e99);bottom:-22px;left:50%}
+.city-building-label::before{content:"";position:absolute;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:#ffd98a;box-shadow:0 0 0 2px #2b1a12aa,0 0 6px #ffcf6a;bottom:-25.5px;left:50%}
+.city-building-label.is-behind{opacity:.42}
+.city-building-label.is-behind[aria-pressed="true"]{opacity:.85}
+/* 世界地图上的城池标签（主城 / 县镇 / 其他玩家） */
+.city-world-label{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 12px 5px;border-radius:3px;white-space:nowrap;pointer-events:auto;cursor:pointer;font-family:inherit;line-height:1.15;
+  background:linear-gradient(#3a2418e8,#24160ee8);color:#f3dfae;border:1px solid #b88a3e88;box-shadow:0 3px 10px #0006;transition:opacity .25s}
+.city-world-label b{font-size:14px;letter-spacing:2px;font-weight:700}
+.city-world-label small{font:10px "Microsoft YaHei",sans-serif;color:#cdb893;letter-spacing:0}
+.city-world-label.is-grand{padding:6px 16px 7px;background:linear-gradient(#b8321f,#6d180d);border:1px solid #f0cf7c;box-shadow:0 0 14px #ffcf6a55,0 4px 12px #0008}
+.city-world-label.is-grand b{font-size:19px;letter-spacing:5px;color:#fff1cf;text-shadow:0 2px 0 #0007}
+.city-world-label.is-grand small{color:#f8d9b4;font-size:11px}
+.city-world-label.is-town{background:#2b1a12cc;border-color:#d8b26a55;padding:3px 9px 4px}
+.city-world-label.is-town b{font-size:12px;letter-spacing:1px}
+.city-world-label.is-player{background:linear-gradient(#2c3b4a,#18222c);border-color:#8fb3d1aa}
+.city-world-label.is-player b{font-size:13px;color:#e4eef7}
+.city-world-label.is-player small{color:#a9c1d6}
+.city-world-label.is-home{background:linear-gradient(#2f5a3a,#1a3322);border-color:#a8d8b0}
+.city-world-label:focus-visible{outline:2px solid #ffe08a;outline-offset:2px}
+/* 主城活动面板（拍卖会 / 集市 / 简介） */
+.ga-tabs{display:flex;gap:6px;margin-bottom:12px}
+.ga-tabs button{flex:1;padding:8px 0;border-radius:4px;cursor:pointer;font-family:inherit;font-size:14px;letter-spacing:2px;border:1px solid #b88a3e88;background:#0003;color:inherit}
+.ga-tabs button[aria-selected="true"]{background:linear-gradient(#b8321f,#7d1d12);color:#fff4d2;border-color:#f0cf7c}
+.ga-note{font-size:12px;opacity:.75;margin:0 0 10px}
+.ga-gold{font-size:13px;margin:0 0 10px}
+.ga-gold b{color:#e9c068}
+.ga-lot{display:flex;align-items:center;gap:10px;padding:10px;margin-bottom:8px;border-radius:5px;background:#0000002e;border:1px solid #b88a3e44}
+.ga-lot-icon{width:40px;height:40px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;color:#3a2616;background:radial-gradient(circle at 35% 30%,#fbe7b8,#c99a4c)}
+.ga-lot-main{flex:1;min-width:0}
+.ga-lot-main b{display:block;font-size:14px}
+.ga-lot-main small{display:block;font-size:11px;opacity:.75}
+.ga-lot-bid{text-align:right;font-size:12px;flex-shrink:0}
+.ga-lot-bid b{display:block;font-size:15px;color:#e9c068;font-variant-numeric:tabular-nums}
+.ga-lot-bid .ga-me{color:#7fd39a}
+.ga-lot-bid .ga-out{color:#f0a070}
+.ga-lot button,.ga-buy{margin-top:4px;padding:5px 12px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:13px;border:1px solid #f0cf7c;background:linear-gradient(#c23a24,#8f2314);color:#fff0d0}
+.ga-lot button:disabled,.ga-buy:disabled{opacity:.45;cursor:not-allowed}
+.ga-intro p{margin:0 0 8px}
+.city-building-label[aria-pressed="true"]{background:linear-gradient(#b8321f,#7d1d12);color:#fff4d2;border-color:#f0cf7c;box-shadow:0 0 12px #ffcf6a88,0 3px 10px #0007;z-index:3}
+.city-building-label:focus-visible{outline:2px solid #ffe08a;outline-offset:2px}
+.city3d-status{position:absolute;inset:0;display:flex;flex-direction:column;gap:16px;justify-content:center;align-items:center;z-index:4;text-align:center;font-size:15px;color:#253b26;background:#b8c2ab}
+.city3d-status[hidden]{display:none}
+[data-scene="city"] .buildings-grid{height:104px;flex-shrink:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;margin:0;padding:10px;background:#203329;border-top:1px solid #657056}
+[data-scene="city"] .building-card{font-family:inherit;border-radius:3px;margin:0 2px;padding:13px 3px;color:#ece3cb;background:transparent;border:1px solid transparent;min-width:0}
+[data-scene="city"] .building-card:hover{transform:none;background:#354936}
+[data-scene="city"] .building-card[aria-pressed="true"]{background:#3f5037;border-color:#cba875}
+[data-scene="city"] .building-name{font-size:13px;white-space:nowrap}
+[data-scene="city"] .building-level{color:#b9bfa3;font-size:11px;margin-top:7px}
+[data-scene="city"] .building-progress{height:2px;margin-top:6px}
+/* 地图侧边栏：左侧图例 + 右侧控制，羊皮纸卷轴质感升级 */
+.map-sidebar{position:relative;width:196px;flex-shrink:0;padding:18px 15px 16px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:16px;font-size:12px;color:#3e2a18;
+  background:
+    linear-gradient(160deg,#e6cd9e 0%,#d8b988 38%,#cba871 70%,#bd9760 100%),
+    repeating-linear-gradient(0deg,#00000006 0 2px,#ffffff05 2px 4px);
+  border:1px solid #8b6e42;
+  box-shadow:inset 0 1px #f7ead0,inset 0 -2px #a37d4e,inset 0 0 34px #8b6e4222,0 2px 8px #3e2a181f}
+.map-sidebar::before,.map-sidebar::after{content:"";position:absolute;width:14px;height:14px;border:2px solid #b8893e;opacity:.75;pointer-events:none}
+.map-sidebar::before{left:6px;top:6px;border-right:0;border-bottom:0}
+.map-sidebar::after{right:6px;bottom:6px;border-left:0;border-top:0}
+.map-sidebar-left{border-right:0}
+.map-sidebar-right{border-left:0}
+.map-legend-title{position:relative;font-size:16px;font-weight:700;color:#5b3b1e;letter-spacing:3px;padding:0 0 11px 14px;
+  border-bottom:1px solid #a37d4e;text-shadow:1px 1px 0 #ede3c2}
+.map-legend-title::before{content:"";position:absolute;left:0;top:3px;width:5px;height:14px;border-radius:1px;
+  background:linear-gradient(#d7452b,#8f2314);box-shadow:0 0 0 1px #f0cf7c inset}
+.map-legend-subtitle{font-size:12px;font-weight:700;color:#6d4628;letter-spacing:1.5px;margin-bottom:4px}
+.map-legend-section{display:flex;flex-direction:column;gap:5px}
+.map-legend-item{display:flex;align-items:center;gap:10px;width:100%;padding:7px 8px;font:inherit;text-align:left;
+  border:1px solid transparent;border-radius:5px;background:none;cursor:pointer;
+  transition:background .16s ease,border-color .16s ease,transform .12s ease}
+.map-legend-item.is-static{cursor:default}
+.map-legend-item:not(.is-static):hover{background:#ffffff40;border-color:#b8893e66;transform:translateX(2px)}
+.map-legend-item:not(.is-static):active{transform:translateX(2px) scale(.99)}
+.map-legend-item[aria-pressed="false"]{opacity:.46}
+.map-legend-item[aria-pressed="false"] .map-legend-icon{filter:grayscale(.65)}
+.map-legend-item:focus-visible{outline:2px solid #8b6e42;outline-offset:2px}
+.map-legend-icon{width:32px;height:32px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 34% 28%,#fbeecb,#e2c391 62%,#c39c62 100%);
+  border:1px solid #b88a3e;box-shadow:0 2px 4px #3e2a1833,inset 0 1px #ffffff70,inset 0 -2px #a37d4e55}
+.map-legend-icon svg{width:19px;height:19px;display:block}
+.map-legend-text{flex:1;font-size:12px;line-height:1.4;color:#4b301b}
+.map-legend-eye{width:15px;height:15px;flex:none;border-radius:50%;border:1.5px solid #8b6e42;background:#00000012;
+  display:flex;align-items:center;justify-content:center;transition:all .16s ease}
+.map-legend-item[aria-pressed="true"] .map-legend-eye{background:linear-gradient(#3f8a4c,#256b34);border-color:#1c3f24}
+.map-legend-item[aria-pressed="true"] .map-legend-eye::after{content:"";width:6px;height:3.5px;margin-top:-1px;
+  border-left:2px solid #eaf6d6;border-bottom:2px solid #eaf6d6;transform:rotate(-45deg)}
+.map-legend-note{font-size:11px;line-height:1.6;color:#785431;padding:10px;background:#00000014;border-radius:4px;border:1px solid #b88a3e44}
+.map-control-section{display:flex;flex-direction:column;gap:8px}
+.map-control-btn{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #8b6e42;border-radius:5px;
+  background:linear-gradient(#f3d9a4,#dcbe80);box-shadow:0 2px 4px #3e2a1833,inset 0 1px #ffffff70;color:#4b301b;
+  font:13px "Microsoft YaHei",sans-serif;cursor:pointer;transition:all .15s ease}
+.map-control-btn:hover{background:linear-gradient(#f8e2b2,#e5c98c);transform:translateY(-1px);box-shadow:0 4px 8px #3e2a1840}
+.map-control-btn:active{transform:translateY(0);box-shadow:0 1px 2px #3e2a1833}
+.map-control-icon{width:20px;height:20px;flex:none;display:flex;align-items:center;justify-content:center}
+.map-control-icon svg{width:18px;height:18px;display:block}
+.map-control-label{flex:1;text-align:left;font-weight:500}
+.map-filter-checkbox{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:5px;cursor:pointer;user-select:none;transition:background .16s}
+.map-filter-checkbox:hover{background:#ffffff33}
+.map-filter-checkbox input[type="checkbox"]{width:16px;height:16px;cursor:pointer;accent-color:#8b6e42}
+.map-filter-checkbox span{font-size:12px;color:#4b301b}
+.world-map-shell{position:relative;flex:1;min-height:0;overflow:hidden;background:#c9a66f}
+.world-map-shell::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 46%,#e4c68c 0%,#d2ad70 42%,#a57a43 100%),repeating-linear-gradient(12deg,#ffffff08 0 1px,#00000008 1px 3px);mix-blend-mode:multiply;opacity:.92}
+.world-map-shell::after{content:"";position:absolute;inset:0;z-index:3;pointer-events:none;box-shadow:inset 0 0 90px #3f2b174d,inset 0 0 10px #2e1e124d}
+#worldMap{position:absolute;inset:0;z-index:1;touch-action:none;font-family:"Microsoft YaHei",sans-serif;background:#c9a66f;cursor:grab}
+#worldMap:active{cursor:grabbing}
+.leaflet-container{font-family:"Microsoft YaHei",sans-serif!important;background:transparent!important}
+.leaflet-tile-pane{filter:saturate(.65) sepia(.35);opacity:.74}
+.leaflet-control-attribution{font-size:10px!important;padding:3px 7px!important;background:#ead4a8dd!important;color:#5d4327!important}
+.leaflet-control-attribution a{color:#5d4327!important}
+.map-network-status{position:absolute;top:22px;right:22px;z-index:600;max-width:330px;padding:12px 14px;font-size:12px;line-height:1.6;background:#fff8e7;color:#795b27;border:1px solid #cdbd93;border-radius:4px;box-shadow:0 3px 15px #22352320}
+.map-network-status[hidden],.map-site-panel[hidden]{display:none}
+.map-site-panel{position:absolute;left:22px;bottom:72px;z-index:650;width:306px;padding:20px;background:linear-gradient(145deg,#f0d39bee,#c99654ee);border:1px solid #694322;border-radius:4px;box-shadow:0 7px 22px #3d271866,inset 0 1px #f9e2ad;color:#4b301b}
+.map-site-close{position:absolute;right:10px;top:7px;width:30px;height:30px;background:transparent;border:0;font-size:23px;color:#704928;cursor:pointer}
+.map-site-panel small{font-size:11px;color:#785431;letter-spacing:1px}
+.map-site-panel h3{font-size:21px;margin:8px 0 9px;font-weight:700;color:#422817;text-shadow:1px 1px 0 #edcf91}
+.map-site-panel p{font-size:12px;line-height:1.8;color:#674426;margin-top:6px}
+.map-site-panel>button:last-child{margin-top:16px;width:100%;padding:12px;border:1px solid #533019;border-radius:3px;background:linear-gradient(#946039,#6f4025);box-shadow:inset 0 1px #c9985c;color:#f8e2ad;font:14px "Microsoft YaHei",sans-serif;cursor:pointer}
+.map-city-name{font:600 13px "Microsoft YaHei",sans-serif;color:#3e2a18;text-shadow:1px 1px 0 #efd39d,-1px -1px 0 #efd39d,0 0 5px #efd39d;white-space:nowrap;background:none;border:0;box-shadow:none;padding:0;pointer-events:none;transform:translate(7px, -11px)}
+.map-city-name.major{font-size:16px;font-weight:700;letter-spacing:1px;transform:translate(17px, -11px)}
+.map-city-dot{width:8px;height:8px;border:2px solid #f0d29b;border-radius:50%;background:#6e3e22;box-shadow:0 0 0 1px #4a301c;transform:translate(-4px, -4px)}
+.map-fantasy-boundary{filter:drop-shadow(0 1px 1px #57381e66)}
+.map-region-label{font:700 21px "Microsoft YaHei",sans-serif;color:#4d321d;text-shadow:1px 1px 0 #efd39d,-1px -1px 0 #efd39d,0 0 8px #d7ae6f;letter-spacing:4px;white-space:nowrap;pointer-events:none}
+.map-sea-name{font:700 italic 19px "Microsoft YaHei",sans-serif;color:#203f68;text-shadow:1px 1px 0 #c39d65,0 0 6px #c39d65;letter-spacing:3px;white-space:nowrap;pointer-events:none;transform:translate(-60px, -13px)}
+.map-mountain{position:relative;width:38px!important;height:28px!important;background:transparent}
+.map-mountain span{position:absolute;bottom:3px;width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-bottom:18px solid #6f4a29;filter:drop-shadow(1px 1px 0 #e0bb7a)}
+.map-mountain span:nth-child(1){left:2px;transform:scale(.7)}
+.map-mountain span:nth-child(2){left:11px;border-left-width:12px;border-right-width:12px;border-bottom-width:25px}
+.map-mountain span:nth-child(3){right:0;transform:scale(.64)}
+.map-region-tooltip{background:#e7ca91e8!important;border:1px solid #78522e!important;color:#4b311c!important;box-shadow:0 2px 8px #3d271640!important}
+.leaflet-hidden{display:none!important}
+/* 主城光标标记：光标尖端精确落在城池坐标上；跳动动画只作用于内部元素，
+   不改变 Leaflet 锚点定位，也不会干扰地图拖拽 / 缩放 / 点选 */
+.own-city-cursor{border:0;background:transparent;position:relative;overflow:visible;display:flex;justify-content:center;pointer-events:none;transform:translate(-50px, -68px)}
+.own-cursor-lift{display:flex;flex-direction:column;align-items:center;pointer-events:auto;animation:ownCursorBounce 1.15s infinite}
+.own-cursor-name{display:block;background:#29492e;padding:4px 10px;border:1px solid #e2c485;border-radius:3px;font-size:12px;color:#fff4cb;white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.own-cursor-icon{display:block;width:32px;height:40px;margin-top:4px;filter:drop-shadow(0 3px 4px #23392970)}
+.own-cursor-shadow{position:absolute;left:50%;top:64px;width:22px;height:7px;margin-left:-11px;border-radius:50%;background:#28200e;opacity:.42;filter:blur(1px);animation:ownCursorShadow 1.15s infinite}
+@keyframes ownCursorBounce{
+  0%{transform:translateY(0);animation-timing-function:cubic-bezier(.33,.66,.66,1)}
+  50%{transform:translateY(-10px);animation-timing-function:cubic-bezier(.33,0,.66,.33)}
+  100%{transform:translateY(0)}
+}
+@keyframes ownCursorShadow{
+  0%,100%{transform:scale(1);opacity:.42}
+  50%{transform:scale(.6);opacity:.2}
+}
+@media(prefers-reduced-motion:reduce){.own-cursor-lift,.own-cursor-shadow{animation:none}}
+.map-selected-point{width:18px;height:18px;border:3px solid #ffffff;border-radius:50%;background:#b98136;box-shadow:0 0 0 7px #b9813640}
+.map-site-active .leaflet-container{cursor:crosshair}
+button:focus-visible,input:focus-visible{outline:2px solid #dfc48e;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.city3d-viewport *,#worldMap *{scroll-behavior:auto}}
+
+/* ===== 已建成城池：地图城池图标与「进入城池」按钮 ===== */
+.map-city-fort{background:none;border:0;filter:drop-shadow(1px 2px 1.5px #3d271866);cursor:pointer;transition:transform .15s ease;transform:translate(-15px, -24px)}
+.map-city-fort:hover{transform:translate(-15px, -24px) scale(1.14)}
+#mapEnterCity{margin-top:16px;width:100%;padding:12px;border:1px solid #533019;border-radius:3px;background:linear-gradient(#b4833b,#8a5d22);box-shadow:inset 0 1px #e8c177;color:#fdf2cf;font:14px "Microsoft YaHei",sans-serif;cursor:pointer;letter-spacing:2px}
+#mapEnterCity:hover{filter:brightness(1.08)}
+#mapEnterCity[hidden]{display:none}
+#mapEnterCity:not([hidden])+#mapBuildHere{margin-top:9px}
