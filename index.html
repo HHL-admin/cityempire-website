@@ -291,16 +291,14 @@ function switchTab(platform) {
   document.getElementById(platform + '-guide').classList.add('active');
 }
 
-function downloadAPK() {
-  // 检查是否有APK文件
-  const apkUrl = './city-empire.apk';
-  
-  // 显示提示信息
-  alert('APK安装包正在准备中...\n\n暂时请使用下方"网页版游戏"按钮体验游戏，\n或按照下方教程"添加到主屏幕"，\n效果与原生APP一样！');
-  
-  // TODO: 当APK准备好后，取消注释下面的代码
-  // window.location.href = apkUrl;
-}
+async function downloadAPK() {
+      // 显示提示
+      if (confirm('正在为您准备APK安装包...\n\n由于APK文件较大，建议您先体验"添加到主屏幕"功能，\n效果与原生APP完全一样！\n\n点击"确定"体验网页版，点击"取消"了解APK下载方式。')) {
+        window.location.href = 'cities.html';
+      } else {
+        alert('APK下载方式：\n\n1. 使用手机浏览器打开本页面\n2. 点击浏览器菜单 → "添加到主屏幕"\n3. 图标会添加到手机桌面\n4. 点击图标即可全屏运行游戏\n\n如需独立APK文件，请访问我们的GitHub发布页：\nhttps://github.com/hhl-admin/cityempire-website/releases');
+      }
+    }
 </script>
 
 </body>
