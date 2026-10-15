@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="城池帝国 - 多人在线策略游戏，发展城池、招募军队、攻城略地">
+  <title>城池帝国 - 策略为王，统御天下</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 头部导航 -->
+  <header>
+    <nav>
+      <div class="logo">城池帝国</div>
+      <ul class="nav-links">
+        <li><a href="#hero">首页</a></li>
+        <li><a href="#features">游戏特色</a></li>
+        <li><a href="#download">立即下载</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- 英雄区 -->
+  <section id="hero">
+    <div class="hero-content">
+      <h1>策略为王，统御天下</h1>
+      <p>扮演城主，发展经济、招募军队、征战四方</p>
+      <a href="#download" class="cta-button">开始游戏</a>
+    </div>
+  </section>
+
+  <!-- 游戏特色 -->
+  <section id="features">
+    <h2>游戏特色</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🏰</div>
+        <h3>建设城池</h3>
+        <p>从零开始打造专属城市，升级建筑解锁更多功能</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚔️</div>
+        <h3>招募军队</h3>
+        <p>训练步兵、骑兵、弓箭手，组建强大的战斗部队</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>征战天下</h3>
+        <p>攻占城池、掠夺资源，在排行榜上展现实力</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤝</div>
+        <h3>多人在线</h3>
+        <p>实时与其他玩家互动，结盟或对抗</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 下载区 -->
+  <section id="download">
+    <h2>立即下载</h2>
+    <div class="download-grid">
+      <a href="http://150.158.119.206:3000" class="download-card" target="_blank">
+        <div class="platform-icon">🌐</div>
+        <h3>网页版</h3>
+        <p>无需下载，浏览器直接畅玩</p>
+      </a>
+      <div class="download-card disabled">
+        <div class="platform-icon">🤖</div>
+        <h3>Android</h3>
+        <p>即将上线</p>
+      </div>
+      <div class="download-card disabled">
+        <div class="platform-icon">🍎</div>
+        <h3>iOS</h3>
+        <p>即将上线</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 智能客服按钮 -->
+  <button id="ai-chat-btn" class="ai-chat-btn" aria-label="智能客服">
+    <span class="chat-icon">💬</span>
+  </button>
+
+  <!-- 智能客服弹窗 -->
+  <div id="ai-chat-modal" class="ai-chat-modal">
+    <div class="chat-header">
+      <h3>智能客服</h3>
+      <button id="close-chat" class="close-btn">&times;</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <div class="chat-input-wrapper">
+      <input type="text" id="chat-input" placeholder="输入问题..." maxlength="1000">
+      <button id="send-btn">发送</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 城池帝国. All rights reserved.</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
