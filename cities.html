@@ -1,0 +1,2670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="城池帝国">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a472a">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>城池帝国 · Cities Empire</title>
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="world-city.css?v=1">
+<link rel="stylesheet" href="login.css?v=3">
+<link rel="stylesheet" href="city-hud.css?v=3">
+<link rel="stylesheet" href="social.css?v=4">
+<link rel="stylesheet" href="online-map.css?v=6">
+<link rel="stylesheet" href="friends.css?v=1">
+<link rel="stylesheet" href="chat.css?v=1">
+<style>
+/* ============================================================
+ * 城池攻防策略经营游戏 - 横屏单机
+ * 设计基准分辨率：1280 × 720（横屏 16:9）
+ * 竖屏环境下舞台整体旋转 90° 强制横屏显示
+ * 支持动态横竖屏自适应、古风动态加载
+ * ============================================================ */
+:root{
+  --primary:     #1a472a;
+  --primary-l:   #2d6b45;
+  --accent:      #d4a574;
+  --accent-dark: #8b6f47;
+  --text:        #e8dcc8;
+  --text-dim:    #a89968;
+  --bg:          #0f1419;
+  --panel:       rgba(26, 71, 42, 0.85);
+  --panel-line:  rgba(212, 165, 116, 0.2);
+  --danger:      #cc4444;
+  --ok:          #7dcc7d;
+  --warn:        #dba500;
+  --region-nw:   #8b7355;
+  --region-ne:   #5a7d99;
+  --region-c:    #6b5f3d;
+  --region-s:    #7a5a4a;
+}
+
+@keyframes ink-flow {
+  0% { opacity:0; transform:translateY(20px); }
+  50% { opacity:0.8; }
+  100% { opacity:0; transform:translateY(-20px); }
+}
+
+@keyframes cloud-float {
+  0%, 100% { transform:translateX(-100%) scaleX(-1); }
+  50% { transform:translateX(100%) scaleX(1); }
+}
+
+@keyframes scroll-unfold {
+  0% { clip-path:inset(50% 0 50% 0); opacity:0; }
+  50% { clip-path:inset(0 0 0 0); opacity:0.6; }
+  100% { clip-path:inset(0 0 0 0); opacity:1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity:0.3; }
+  50% { opacity:1; }
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html,body{
+  width:100%; height:100%; overflow:hidden; background:#000;
+  font-family:"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;
+  color:var(--text); user-select:none; -webkit-user-select:none;
+  touch-action:manipulation; overscroll-behavior:none;
+}
+
+#game-root{ position:fixed; inset:0; background:#000; }
+#bg-canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+#letterbox{ position:absolute; inset:0; background:linear-gradient(135deg, #0f1419 0%, #1a1f26 100%); }
+
+/* 设计舞台：固定 1280×720，支持响应式缩放 */
+#stage{
+  position:relative; left:0; top:0;
+  width:1280px; height:720px;
+  transform-origin:0 0;
+  transition:transform 0.1s ease-out;
+}
+
+/* 古风动态加载屏 */
+#loading-screen{
+  position:fixed; inset:0; background:linear-gradient(135deg, #0f1419 0%, #1a2428 50%, #0f1419 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  z-index:9999; opacity:1; transition:opacity 0.5s ease;
+  pointer-events:auto;
+}
+
+#loading-screen.hidden{
+  opacity:0; pointer-events:none;
+}
+
+.loading-container{
+  position:relative; width:300px; height:300px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+.loading-scroll{
+  position:absolute; width:280px; height:280px;
+  background:radial-gradient(ellipse at center, rgba(212,165,116,0.1) 0%, transparent 70%);
+  border:2px solid var(--accent-dark);
+  border-radius:10px;
+  animation:scroll-unfold 1.5s ease-in-out infinite;
+  box-shadow:inset 0 0 20px rgba(212,165,116,0.1), 0 0 30px rgba(212,165,116,0.15);
+}
+
+.loading-center{
+  position:relative; z-index:10;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:20px;
+}
+
+.loading-orb{
+  width:120px; height:120px;
+  background:radial-gradient(circle at 30% 30%, rgba(212,165,116,0.8), rgba(212,165,116,0.2));
+  border-radius:50%;
+  box-shadow:0 0 40px rgba(212,165,116,0.6), inset -20px -20px 40px rgba(0,0,0,0.5);
+  animation:pulse-glow 1.5s ease-in-out infinite;
+  position:relative;
+}
+
+.loading-orb::before{
+  content:''; position:absolute; inset:10px;
+  background:conic-gradient(from 0deg, rgba(212,165,116,0.6) 0deg, transparent 180deg, rgba(212,165,116,0.3) 360deg);
+  border-radius:50%;
+  animation:spin 3s linear infinite;
+  @supports not (animation:spin 3s linear infinite) {
+    animation:spin 4s linear infinite;
+  }
+}
+
+@keyframes spin {
+  from { transform:rotate(0deg); }
+  to { transform:rotate(360deg); }
+}
+
+.loading-cloud{
+  position:absolute; width:200px; height:40px;
+  background:url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 40" xmlns="http://www.w3.org/2000/svg"><path d="M10 30 Q20 10 40 20 T80 15 T120 25 T160 18 Q180 25 190 30" fill="none" stroke="rgba(212,165,116,0.3)" stroke-width="2" stroke-linecap="round"/></svg>') no-repeat center;
+  animation:cloud-float 3s ease-in-out infinite;
+  opacity:0.5;
+}
+
+.loading-text{
+  text-align:center; font-size:16px; color:var(--accent);
+  letter-spacing:2px; font-weight:500;
+}
+
+.loading-progress{
+  width:240px; height:4px; background:rgba(212,165,116,0.1);
+  border-radius:2px; overflow:hidden; border:1px solid var(--accent-dark);
+  box-shadow:inset 0 0 10px rgba(0,0,0,0.5);
+}
+
+.loading-progress-bar{
+  height:100%; background:linear-gradient(90deg, var(--accent-dark), var(--accent), var(--accent-dark));
+  width:0%; transition:width 0.3s ease;
+  box-shadow:0 0 10px rgba(212,165,116,0.8);
+}
+
+/* 场景容器 */
+.scene{ position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity 0.4s ease; }
+.scene.active{ opacity:1; pointer-events:auto; }
+
+/* ========== 动感古风主界面样式 ========== */
+.home-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(15,20,25,0.95) 0%, rgba(26,36,40,0.95) 50%, rgba(15,20,25,0.95) 100%);
+  overflow: hidden;
+}
+
+/* 粒子飘动系统 */
+.particle-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle at 30% 30%, rgba(212,165,116,0.8), rgba(212,165,116,0.2));
+  border-radius: 50%;
+  animation: float-up 8s infinite ease-in-out;
+}
+
+.particle.p1 { left: 10%; animation-delay: 0s; }
+.particle.p2 { left: 25%; animation-delay: 1s; }
+.particle.p3 { left: 40%; animation-delay: 2s; }
+.particle.p4 { left: 55%; animation-delay: 3s; }
+.particle.p5 { left: 70%; animation-delay: 4s; }
+.particle.p6 { left: 85%; animation-delay: 5s; }
+
+@keyframes float-up {
+  0% {
+    bottom: -10px;
+    opacity: 0;
+    transform: translateX(0);
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0;
+  }
+  100% {
+    bottom: 110%;
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+/* 祥云装饰层 */
+.cloud-layer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  opacity: 0.15;
+  animation: cloud-float 20s infinite linear;
+}
+
+.cloud.c1 {
+  top: 20%;
+  width: 200px;
+  height: 80px;
+  background: radial-gradient(ellipse 100px 40px at center, rgba(212,165,116,0.6), transparent);
+  animation-duration: 25s;
+}
+
+.cloud.c2 {
+  top: 50%;
+  width: 250px;
+  height: 100px;
+  background: radial-gradient(ellipse 125px 50px at center, rgba(212,165,116,0.4), transparent);
+  animation-duration: 30s;
+  animation-delay: 5s;
+}
+
+.cloud.c3 {
+  top: 75%;
+  width: 180px;
+  height: 70px;
+  background: radial-gradient(ellipse 90px 35px at center, rgba(212,165,116,0.5), transparent);
+  animation-duration: 35s;
+  animation-delay: 10s;
+}
+
+@keyframes cloud-float {
+  0% {
+    left: -300px;
+  }
+  100% {
+    left: 100vw;
+  }
+}
+
+/* 光效背景 */
+.glow-orb {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle at 40% 40%, rgba(212,165,116,0.3), rgba(212,165,116,0.1), transparent);
+  border-radius: 50%;
+  animation: pulse-breath 4s ease-in-out infinite;
+  top: 10%;
+  right: -100px;
+  pointer-events: none;
+  filter: blur(40px);
+}
+
+@keyframes pulse-breath {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+/* 游戏标题 */
+.game-title {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  margin-bottom: 80px;
+  animation: title-glow 2s ease-in-out infinite;
+}
+
+.title-text {
+  font-size: 72px;
+  font-weight: bold;
+  color: #d4a574;
+  text-shadow: 
+    0 0 10px rgba(212,165,116,0.5),
+    0 0 20px rgba(212,165,116,0.3),
+    2px 2px 4px rgba(0,0,0,0.8);
+  font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+  letter-spacing: 2px;
+}
+
+.title-subtitle {
+  font-size: 16px;
+  color: rgba(212,165,116,0.6);
+  margin-top: 8px;
+  letter-spacing: 1px;
+  font-style: italic;
+}
+
+@keyframes title-glow {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px rgba(212,165,116,0.5),
+      0 0 20px rgba(212,165,116,0.3),
+      2px 2px 4px rgba(0,0,0,0.8);
+  }
+  50% {
+    text-shadow: 
+      0 0 15px rgba(212,165,116,0.8),
+      0 0 30px rgba(212,165,116,0.5),
+      2px 2px 4px rgba(0,0,0,0.8);
+  }
+}
+
+/* 主菜单按钮组 */
+.main-menu {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  padding: 0 40px;
+  max-width: 300px;
+}
+
+.menu-btn {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #d4a574;
+  background: linear-gradient(135deg, rgba(212,165,116,0.15) 0%, rgba(212,165,116,0.05) 100%);
+  border: 2px solid rgba(212,165,116,0.4);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.menu-btn:hover {
+  background: linear-gradient(135deg, rgba(212,165,116,0.25) 0%, rgba(212,165,116,0.15) 100%);
+  border-color: rgba(212,165,116,0.8);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 6px 20px rgba(212,165,116,0.3),
+    inset 0 0 10px rgba(212,165,116,0.1);
+}
+
+.menu-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.menu-btn.primary {
+  background: linear-gradient(135deg, rgba(212,165,116,0.25) 0%, rgba(212,165,116,0.1) 100%);
+  border-color: rgba(212,165,116,0.6);
+  box-shadow: 0 6px 20px rgba(212,165,116,0.2);
+}
+
+.menu-btn.primary:hover {
+  background: linear-gradient(135deg, rgba(212,165,116,0.35) 0%, rgba(212,165,116,0.2) 100%);
+  border-color: rgba(212,165,116,1);
+  box-shadow: 
+    0 8px 30px rgba(212,165,116,0.4),
+    inset 0 0 15px rgba(212,165,116,0.15);
+}
+
+.btn-icon {
+  font-size: 24px;
+}
+
+.btn-text {
+  font-size: 16px;
+}
+
+@media (orientation: portrait) {
+  .game-title {
+    margin-bottom: 40px;
+  }
+  .title-text {
+    font-size: 48px;
+  }
+  .title-subtitle {
+    font-size: 12px;
+  }
+  .main-menu {
+    gap: 12px;
+    padding: 0 20px;
+  }
+  .menu-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+/* ---- 主界面布局 ---- */
+.main-container{
+  display:flex; flex-direction:column; width:100%; height:100%;
+  background:linear-gradient(to bottom, #1a1f26, #0f1419);
+}
+
+.top-bar{
+  display:flex; justify-content:space-between; align-items:center;
+  height:60px; padding:0 30px;
+  border-bottom:2px solid var(--panel-line);
+  background:rgba(0,0,0,0.3);
+}
+
+.city-name{ font-size:24px; font-weight:bold; color:var(--accent); }
+.protection-badge{
+  padding:6px 16px; border-radius:20px;
+  background:var(--ok); color:#000; font-size:13px; font-weight:600;
+}
+
+.main-content{
+  flex:1; display:flex; overflow:hidden;
+}
+
+/* 左侧资源面板 */
+.left-panel{
+  width:280px; padding:20px; overflow-y:auto;
+  background:rgba(0,0,0,0.2);
+  border-right:2px solid var(--panel-line);
+}
+
+.resource-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px; margin:8px 0; border-radius:8px;
+  background:rgba(26,71,42,0.4);
+  border:1px solid var(--panel-line);
+  font-size:14px;
+}
+
+.resource-label{ color:var(--text-dim); }
+.resource-value{ color:var(--accent); font-weight:bold; font-size:16px; }
+.resource-prod{ color:var(--ok); font-size:12px; margin-left:10px; }
+
+/* 中央城池区域 */
+.center-view{
+  flex:1; display:flex; flex-direction:column; padding:20px;
+  overflow:hidden;
+}
+
+.city-view{
+  flex:1; display:flex; flex-direction:column;
+  background:rgba(26,71,42,0.3); border-radius:12px;
+  border:2px solid var(--panel-line); padding:20px;
+  overflow-y:auto;
+}
+
+.buildings-grid{
+  display:grid; grid-template-columns:repeat(3, 1fr);
+  gap:15px; margin-top:15px;
+}
+
+.building-card{
+  padding:12px; border-radius:8px;
+  background:rgba(26,71,42,0.6); border:1px solid var(--panel-line);
+  cursor:pointer; transition:all 0.2s;
+  text-align:center;
+}
+
+.building-card:hover{
+  background:rgba(212,165,116,0.15);
+  border-color:var(--accent);
+  transform:translateY(-2px);
+}
+
+.building-icon{ font-size:32px; margin:8px 0; }
+.building-name{ font-size:13px; color:var(--text); font-weight:600; }
+.building-level{ font-size:11px; color:var(--text-dim); margin-top:4px; }
+.building-progress{
+  width:100%; height:4px; background:rgba(0,0,0,0.3);
+  border-radius:2px; margin-top:8px; overflow:hidden;
+}
+.progress-bar{
+  height:100%; background:linear-gradient(90deg, var(--ok), var(--accent));
+  width:0%; transition:width 0.3s;
+}
+
+/* 右侧操作面板 */
+.right-panel{
+  width:300px; padding:20px; overflow-y:auto;
+  background:rgba(0,0,0,0.2);
+  border-left:2px solid var(--panel-line);
+  display:flex; flex-direction:column;
+}
+
+.action-section{
+  margin-bottom:20px;
+}
+
+.section-title{
+  font-size:14px; font-weight:bold; color:var(--accent);
+  padding-bottom:10px; border-bottom:1px solid var(--panel-line);
+  margin-bottom:12px;
+}
+
+.action-button{
+  display:block; width:100%; padding:12px;
+  margin:8px 0; border-radius:6px; border:none;
+  background:var(--primary-l); color:var(--accent);
+  font-size:13px; font-weight:600; cursor:pointer;
+  transition:all 0.2s;
+  border:1px solid var(--accent);
+}
+
+.action-button:hover{
+  background:var(--accent); color:#000;
+  transform:translateY(-1px);
+}
+
+.action-button:disabled{
+  opacity:0.5; cursor:not-allowed;
+}
+
+.action-button.danger{
+  border-color:var(--danger); color:var(--danger);
+}
+
+.action-button.danger:hover{
+  background:var(--danger); color:#fff;
+}
+
+/* 世界地图视图 */
+.world-map{
+  display:grid; grid-template-columns:repeat(2, 1fr);
+  gap:20px; padding:20px;
+}
+
+.region-card{
+  padding:20px; border-radius:12px;
+  border:2px solid var(--panel-line);
+  cursor:pointer; transition:all 0.3s;
+  background:rgba(0,0,0,0.2);
+  min-height:120px;
+  display:flex; flex-direction:column; justify-content:space-between;
+}
+
+.region-card:hover{
+  transform:translateY(-4px);
+  border-color:var(--accent);
+}
+
+.region-name{
+  font-size:18px; font-weight:bold; margin-bottom:8px;
+}
+
+.region-desc{
+  font-size:12px; color:var(--text-dim);
+  margin-bottom:12px;
+}
+
+.region-resources{
+  font-size:11px; color:var(--text-dim);
+  margin:8px 0;
+}
+
+.region-troops{
+  font-size:11px; color:var(--accent);
+  margin:4px 0;
+}
+
+/* 模态对话框 */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  display:none; align-items:center; justify-content:center;
+  z-index:1000;
+}
+
+.modal-overlay.show{ display:flex; }
+
+.modal-box{
+  background:var(--panel); border:2px solid var(--panel-line);
+  border-radius:12px; padding:30px;
+  max-width:500px; max-height:80vh; overflow-y:auto;
+  box-shadow:0 0 40px rgba(0,0,0,0.7);
+}
+
+.modal-header{
+  font-size:20px; font-weight:bold; color:var(--accent);
+  margin-bottom:20px; padding-bottom:15px;
+  border-bottom:1px solid var(--panel-line);
+}
+
+.modal-content{ font-size:14px; line-height:1.6; margin-bottom:20px; }
+
+.input-group{
+  margin:15px 0;
+}
+
+.input-label{
+  display:block; font-size:13px; color:var(--text-dim);
+  margin-bottom:6px; font-weight:600;
+}
+
+input[type="number"], input[type="text"]{
+  width:100%; padding:10px; border-radius:6px;
+  background:rgba(0,0,0,0.3); border:1px solid var(--panel-line);
+  color:var(--text); font-size:14px;
+}
+
+input[type="number"]:focus, input[type="text"]:focus{
+  outline:none; border-color:var(--accent);
+  background:rgba(26,71,42,0.3);
+}
+
+.modal-buttons{
+  display:flex; gap:10px; margin-top:20px;
+}
+
+.modal-buttons button{
+  flex:1; padding:10px; border-radius:6px; border:none;
+  font-size:13px; font-weight:600; cursor:pointer;
+  transition:all 0.2s;
+}
+
+.btn-primary{
+  background:var(--primary-l); color:var(--accent);
+  border:1px solid var(--accent);
+}
+
+.btn-primary:hover{ background:var(--accent); color:#000; }
+
+.btn-secondary{
+  background:rgba(0,0,0,0.3); color:var(--text);
+  border:1px solid var(--panel-line);
+}
+
+.btn-secondary:hover{ background:rgba(0,0,0,0.5); }
+
+/* 状态提示 */
+.status-message{
+  position:fixed; bottom:30px; left:50%;
+  transform:translateX(-50%);
+  padding:15px 30px; border-radius:8px;
+  background:var(--panel); border:1px solid var(--panel-line);
+  color:var(--text); font-size:13px;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.3s;
+  z-index:999;
+}
+
+.status-message.show{ opacity:1; }
+
+/* 滚动条样式 */
+::-webkit-scrollbar{
+  width:6px;
+}
+
+::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+::-webkit-scrollbar-thumb{
+  background:rgba(212,165,116,0.3);
+  border-radius:3px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+  background:rgba(212,165,116,0.5);
+}
+
+/* 场景管理系统 */
+.scene {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+}
+
+.scene.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 主界面样式 */
+.home-background {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 40%, rgba(212,165,116,0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 60%, rgba(45,107,69,0.2) 0%, transparent 50%),
+              linear-gradient(135deg, #0f1419 0%, #1a2428 50%, #0f1419 100%);
+  overflow: hidden;
+}
+
+.particle-layer {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20% 30%, rgba(212,165,116,0.4), transparent),
+    radial-gradient(2px 2px at 60% 70%, rgba(212,165,116,0.3), transparent),
+    radial-gradient(3px 3px at 80% 20%, rgba(212,165,116,0.5), transparent),
+    radial-gradient(2px 2px at 40% 80%, rgba(212,165,116,0.3), transparent),
+    radial-gradient(1px 1px at 90% 50%, rgba(212,165,116,0.4), transparent);
+  background-size: 200% 200%, 250% 250%, 300% 300%, 180% 180%, 220% 220%;
+  background-position: 0% 0%, 50% 50%, 100% 100%, 25% 75%, 75% 25%;
+  animation: particle-drift 20s ease-in-out infinite;
+}
+
+@keyframes particle-drift {
+  0%, 100% { background-position: 0% 0%, 50% 50%, 100% 100%, 25% 75%, 75% 25%; }
+  50% { background-position: 100% 100%, 75% 25%, 0% 0%, 50% 50%, 25% 75%; }
+}
+
+.cloud-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  width: 200px;
+  height: 80px;
+  background: radial-gradient(ellipse at center, rgba(212,165,116,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(20px);
+  animation: cloud-drift 30s ease-in-out infinite;
+}
+
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0) translateY(0); opacity: 0.3; }
+  50% { transform: translateX(100px) translateY(-20px); opacity: 0.6; }
+}
+
+.glow-orb {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  filter: blur(50px);
+  pointer-events: none;
+}
+
+.glow-1 {
+  background: radial-gradient(circle, rgba(212,165,116,0.3) 0%, transparent 70%);
+  animation: glow-pulse-1 4s ease-in-out infinite;
+}
+
+.glow-2 {
+  background: radial-gradient(circle, rgba(45,107,69,0.25) 0%, transparent 70%);
+  animation: glow-pulse-2 5s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-1 {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+}
+
+@keyframes glow-pulse-2 {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.15); }
+}
+
+.home-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+}
+
+.game-title {
+  text-align: center;
+  margin-bottom: 80px;
+  animation: title-appear 1s ease-out;
+}
+
+@keyframes title-appear {
+  0% { opacity: 0; transform: translateY(-30px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.title-text {
+  font-size: 72px;
+  font-weight: bold;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(212,165,116,0.5),
+               0 4px 8px rgba(0,0,0,0.8);
+  letter-spacing: 8px;
+  margin-bottom: 10px;
+}
+
+.title-subtitle {
+  font-size: 20px;
+  color: var(--text-dim);
+  letter-spacing: 4px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+}
+
+.main-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: menu-appear 1s ease-out 0.3s both;
+}
+
+@keyframes menu-appear {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px 60px;
+  border: 2px solid var(--accent-dark);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(26,71,42,0.6) 0%, rgba(45,107,69,0.4) 100%);
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  min-width: 280px;
+}
+
+.menu-button:hover {
+  background: linear-gradient(135deg, rgba(26,71,42,0.8) 0%, rgba(45,107,69,0.6) 100%);
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(212,165,116,0.3);
+  transform: translateY(-2px);
+}
+
+.menu-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.menu-primary {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(212,165,116,0.25) 0%, rgba(139,111,71,0.3) 100%);
+}
+
+.menu-primary:hover {
+  background: linear-gradient(135deg, rgba(212,165,116,0.4) 0%, rgba(139,111,71,0.5) 100%);
+  box-shadow: 0 8px 24px rgba(212,165,116,0.4);
+}
+
+.button-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.button-text {
+  letter-spacing: 2px;
+}
+
+/* 响应式横竖屏自适应布局 */
+@media (orientation: landscape) and (min-width: 1024px) {
+  #stage {
+    transform:scale(1);
+  }
+}
+
+@media (orientation: landscape) and (max-width: 1023px) {
+  #stage {
+    transform:scale(0.85);
+  }
+  .left-panel { width:240px; }
+  .right-panel { width:240px; }
+}
+
+@media (orientation: portrait) {
+  #stage {
+    transform:translate(50%, 50%) rotate(90deg) translate(-50%, -50%) scale(1);
+    transform-origin:center;
+  }
+}
+
+@media (max-width: 800px) {
+  .left-panel { width:200px; }
+  .right-panel { width:200px; }
+  .buildings-grid { grid-template-columns:repeat(2, 1fr); }
+  .top-bar { height:50px; padding:0 20px; font-size:18px; }
+  .action-button { font-size:12px; padding:8px 16px; }
+}
+
+/* 建筑卡片优化样式 */
+.hud-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  position: relative;
+}
+
+.hud-tile-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.hud-tile-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  gap: 2px;
+}
+
+.hud-tile-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hud-tile-lv {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.hud-tile-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+</style>
+</head>
+<body>
+
+<div id="game-root">
+  <canvas id="bg-canvas"></canvas>
+  <div id="letterbox"></div>
+  
+  <!-- 古风动态加载屏 -->
+  <!-- 页面资源未就绪前的纯色遮罩；真正的加载动画由 intro-loading.js 绘制 -->
+  <div id="loading-screen" style="background:#120405"></div>
+  
+  <div id="stage">
+
+    <!-- 城池管理场景（登录后直接进入） -->
+    <div class="scene active" data-scene="city">
+      <!-- 3D 城池铺满全屏，界面元素作为 HUD 浮在上面 -->
+      <div id="city3dViewport" class="city3d-viewport hud-stage" aria-label="三维城池，可拖动旋转、双指缩放">
+        <!-- 装饰层：填充空白区域，不遮挡交互元素 -->
+        <div class="city3d-decor" aria-hidden="true">
+          <!-- 上方：云纹装饰带 -->
+          <div class="decor-clouds-top"></div>
+          <!-- 左侧：山水剪影 -->
+          <div class="decor-mountains-left"></div>
+          <!-- 右侧：山水剪影 -->
+          <div class="decor-mountains-right"></div>
+          <!-- 四角：边框纹样 -->
+          <div class="decor-corner decor-corner-tl"></div>
+          <div class="decor-corner decor-corner-tr"></div>
+          <div class="decor-corner decor-corner-bl"></div>
+          <div class="decor-corner decor-corner-br"></div>
+        </div>
+        <div id="city3dLabels" class="city3d-labels"></div>
+        <div id="city3dStatus" class="city3d-status" role="status">正在构建城池…</div>
+      </div>
+
+      <!-- 左上：城池牌匾 -->
+      <header class="hud-plaque">
+        <div class="hud-seal" aria-label="城池等级"><small>级</small><b id="cityLevelValue">1</b></div>
+        <div class="hud-plaque-text">
+          <h1 class="hud-city-name" id="cityName">主城</h1>
+          <p class="hud-shield" id="protectionBadge">保护期</p>
+        </div>
+      </header>
+
+      <!-- 参观他城横幅：从世界地图进入既有城池时显示 -->
+      <div class="hud-visit-banner" id="visitBanner" hidden>
+        <span class="hud-visit-text">正在参观 <b id="visitBannerName">城池</b></span>
+        <button id="visitBackBtn" type="button">返回地图</button>
+      </div>
+
+      <!-- 顶部中：资源 -->
+      <div class="hud-resources" aria-label="城池资源">
+        <div id="resourcesContainer" class="hud-res-group"></div>
+        <div class="hud-res-group hud-res-people">
+          <div class="hud-res"><i class="hud-glyph">民</i><span class="hud-res-num"><b id="populationValue">0</b><small>人口</small></span></div>
+          <div class="hud-res"><i class="hud-glyph">兵</i><span class="hud-res-num"><b id="troopsValue">0</b><small>军队</small></span></div>
+        </div>
+      </div>
+
+      <!-- 右上：镜头与系统 -->
+      <div class="hud-corner">
+        <div class="hud-cam" aria-label="镜头">
+          <button id="cityRotateBtn" type="button" aria-pressed="false" title="自动旋转">旋</button>
+          <button id="cityTopBtn" type="button" aria-pressed="false" title="俯视">俯</button>
+          <button id="cityResetBtn" type="button" title="重置镜头">正</button>
+          <button id="cityTimeBtn" type="button" aria-label="切换时间：当前白天" title="切换昼夜">昼</button>
+        </div>
+        <div class="hud-cam hud-sys">
+          <button id="cityProfileBtn" type="button" title="我的资料" aria-label="我的资料">资</button>
+          <button id="cityAboutBtn" type="button" title="游戏介绍" aria-label="游戏介绍">?</button>
+          <button id="citySettingsBtn" type="button" title="游戏设置" aria-label="游戏设置">设</button>
+        </div>
+      </div>
+
+      <!-- 右侧：主要指令 -->
+      <nav class="hud-commands" aria-label="城池指令">
+        <button class="hud-cmd hud-cmd-main" id="viewMapBtn" type="button"><span>出城</span><small>世界地图</small></button>
+        <button class="hud-cmd" id="friendsBtn" type="button"><span>好友</span><small>社交系统</small></button>
+        <button class="hud-cmd" id="recruitBtn" type="button"><span>招募</span><small>增加人口</small></button>
+        <button class="hud-cmd" id="trainBtn" type="button"><span>练兵</span><small>训练军队</small></button>
+        <button class="hud-cmd" id="taxRateBtn" type="button"><span>税率</span><small>调节税收</small></button>
+        <button class="hud-cmd" id="manualBtn" type="button"><span>秘籍</span><small>道具背包</small></button>
+        <button class="hud-cmd" id="auctionBtn" type="button" hidden><span>拍卖</span><small>大型城池</small></button>
+        <button class="hud-cmd" id="fairBtn" type="button"><span>拍卖会</span><small>开放日</small></button>
+      </nav>
+
+      <!-- 底部：选中建筑 + 建筑栏 -->
+      <div class="hud-bottom">
+        <section class="hud-detail" id="hudDetail" aria-live="polite">
+          <button class="hud-detail-toggle" id="detailToggleBtn" type="button" aria-expanded="true" aria-label="收起建筑面板" title="收起 / 展开"></button>
+          <div class="hud-detail-head"><b id="selectedBuildingName">城镇中心</b><span id="selectedBuildingLevel">Lv.1</span></div>
+          <p id="selectedBuildingBenefit"></p>
+          <!-- 跨级升级：目标等级步进器（当前等级+1 ~ 最高等级） -->
+          <div class="hud-upgrade-target" id="upgradeTargetRow">
+            <button class="hud-step" id="upgradeTargetMinus" type="button" aria-label="降低目标等级">−</button>
+            <span class="hud-target-label">目标等级 <b id="upgradeTargetLevel">Lv.2</b></span>
+            <button class="hud-step" id="upgradeTargetPlus" type="button" aria-label="提高目标等级">＋</button>
+          </div>
+          <p class="hud-cost" id="selectedBuildingCost"></p>
+          <div class="hud-detail-actions">
+            <button class="hud-btn hud-btn-red" id="upgradeBtn" type="button">升级</button>
+            <button class="hud-btn" id="buildBtn" type="button">新建</button>
+          </div>
+        </section>
+        <div class="hud-dock" id="buildingsContainer" role="group" aria-label="选择建筑"></div>
+      </div>
+      <p class="hud-hint">拖动旋转，滚轮或双指缩放，点击建筑查看</p>
+    </div>
+
+    <!-- 世界地图界面 -->
+    <div class="scene" data-scene="world">
+      <div class="main-container">
+        <div class="top-bar">
+          <div style="font-size:20px; font-weight:bold; color:var(--accent);">世界地图</div>
+          <button class="action-button" id="backFromMapBtn" style="width:120px;">返回城池</button>
+        </div>
+        <div style="display:flex; flex:1; min-height:0; gap:0;">
+          <!-- 左侧图例面板 -->
+          <aside class="map-sidebar map-sidebar-left">
+            <div class="map-legend-title">地图图例</div>
+            <div class="map-legend-section">
+              <div class="map-legend-subtitle">城池标记 · 点击可显隐</div>
+              <button type="button" class="map-legend-item" data-legend="mycity" aria-pressed="true">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s7-7.4 7-12A7 7 0 0 0 5 10c0 4.6 7 12 7 12Z" fill="#c8452c" stroke="#5d2415" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.6" fill="#f6e3b4" stroke="#5d2415" stroke-width="1.2"/></svg>
+                </span>
+                <span class="map-legend-text">我的城池</span>
+                <span class="map-legend-eye" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="map-legend-item" data-legend="capitals" aria-pressed="true">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 34 30" aria-hidden="true"><path d="M4 27 L4 14 L8 14 L8 10.5 L11.4 10.5 L11.4 14 L22.6 14 L22.6 10.5 L26 10.5 L26 14 L30 14 L30 27 Z" fill="#8a5a2d" stroke="#4a2c14" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.4 14 L17 7.2 L24.6 14 Z" fill="#a43527" stroke="#4a2c14" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="map-legend-text">州府名城</span>
+                <span class="map-legend-eye" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="map-legend-item" data-legend="towns" aria-pressed="true">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5.2" fill="#6e3e22" stroke="#f0d29b" stroke-width="1.6"/></svg>
+                </span>
+                <span class="map-legend-text">县镇村落</span>
+                <span class="map-legend-eye" aria-hidden="true"></span>
+              </button>
+              <button type="button" class="map-legend-item" data-legend="players" aria-pressed="true">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.6" fill="#d61f1f" stroke="#fff" stroke-width="1.6"/><circle cx="12" cy="12" r="8.4" fill="none" stroke="#d61f1f" stroke-width="1.4" opacity=".45"/></svg>
+                </span>
+                <span class="map-legend-text">其他玩家</span>
+                <span class="map-legend-eye" aria-hidden="true"></span>
+              </button>
+            </div>
+            <div class="map-legend-section">
+              <div class="map-legend-subtitle">地形地貌</div>
+              <div class="map-legend-item is-static">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="#4d7f86" stroke-width="2" stroke-linecap="round"/><path d="M3 19c2-2 4-2 6 0s4 2 6 0 4-2 6 0" fill="none" stroke="#4d7f86" stroke-width="2" stroke-linecap="round" opacity=".6"/></svg>
+                </span>
+                <span class="map-legend-text">江河水系</span>
+              </div>
+              <div class="map-legend-item is-static">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20 L10 7 L14 14 L17 9 L21 20 Z" fill="#7a8a5c" stroke="#3f4a2c" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                </span>
+                <span class="map-legend-text">山脉丘陵</span>
+              </div>
+              <div class="map-legend-item is-static">
+                <span class="map-legend-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h18M3 13h18M3 17h18" stroke="#c9a66f" stroke-width="2" stroke-linecap="round"/></svg>
+                </span>
+                <span class="map-legend-text">平原盆地</span>
+              </div>
+            </div>
+            <div class="map-legend-note">
+              点击地图任意位置可查看详情并选择建城地点
+            </div>
+          </aside>
+
+          <div class="world-map-shell">
+            <div id="worldMap" aria-label="世界地图：城市与建城点"></div>
+            <div id="mapNetworkStatus" class="map-network-status" role="status" hidden></div>
+            <div id="mapSitePanel" class="map-site-panel" hidden>
+              <button id="mapSiteClose" type="button" class="map-site-close" aria-label="关闭地点详情">×</button>
+              <small id="mapSiteRegion"></small><h3 id="mapSiteName"></h3>
+              <p id="mapSiteCoords"></p><p id="mapSiteDescription"></p>
+              <button id="mapEnterCity" type="button" hidden>进入城池</button>
+              <button id="mapBuildHere" type="button">在此建城</button>
+            </div>
+          </div>
+
+          <!-- 右侧操作面板 -->
+          <aside class="map-sidebar map-sidebar-right">
+            <div class="map-legend-title">地图控制</div>
+            <div class="map-control-section">
+              <button class="map-control-btn" id="mapRecenterBtn" type="button">
+                <span class="map-control-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.4" fill="none" stroke="#5b3b1e" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6" fill="#c8452c"/><path d="M12 1.6v3.4M12 19v3.4M1.6 12h3.4M19 12h3.4" stroke="#5b3b1e" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </span>
+                <span class="map-control-label">回到我的城池</span>
+              </button>
+              <button class="map-control-btn" id="mapZoomInBtn" type="button">
+                <span class="map-control-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="#5b3b1e" stroke-width="2.4" stroke-linecap="round"/></svg>
+                </span>
+                <span class="map-control-label">放大地图</span>
+              </button>
+              <button class="map-control-btn" id="mapZoomOutBtn" type="button">
+                <span class="map-control-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" stroke="#5b3b1e" stroke-width="2.4" stroke-linecap="round"/></svg>
+                </span>
+                <span class="map-control-label">缩小地图</span>
+              </button>
+            </div>
+            <div class="map-legend-section" style="margin-top:18px;">
+              <div class="map-legend-subtitle">显示筛选</div>
+              <label class="map-filter-checkbox">
+                <input type="checkbox" id="mapShowMyCityCheck" checked>
+                <span>显示我的城池</span>
+              </label>
+              <label class="map-filter-checkbox">
+                <input type="checkbox" id="mapShowCapitalsCheck" checked>
+                <span>显示州府名城</span>
+              </label>
+              <label class="map-filter-checkbox">
+                <input type="checkbox" id="mapShowTownsCheck" checked>
+                <span>显示县镇村落</span>
+              </label>
+              <label class="map-filter-checkbox">
+                <input type="checkbox" id="mapShowPlayersCheck" checked>
+                <span>显示其他玩家</span>
+              </label>
+            </div>
+            <div class="map-legend-note" style="margin-top:auto;">
+              拖动地图移动视野<br>
+              滚轮或双指缩放
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 模态对话框 -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-header" id="modalTitle">对话框</div>
+    <div class="modal-content" id="modalContent"></div>
+    <div class="modal-buttons" id="modalButtons"></div>
+  </div>
+</div>
+
+<!-- 状态提示 -->
+<div class="status-message" id="statusMsg"></div>
+
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/three.min.js"></script>
+<script>
+  // 账号服务地址：上线时改成你的 https 域名，例如 https://api.example.com
+  window.GAME_CONFIG = window.GAME_CONFIG || { apiBase: '' };
+</script>
+<script src="intro-loading.js?v=2"></script>
+<script src="auth.js?v=5"></script>
+<script src="login.js?v=5"></script>
+<script src="avatars.js?v=1"></script>
+<script src="profile.js?v=1"></script>
+<script src="social.js?v=14"></script>
+<script src="online-map-v2.js?v=10"></script>
+<script src="friends.js?v=5"></script>
+<script src="chat.js?v=2"></script>
+<script src="mock-api.js?v=4"></script>
+<script src="balance-config.js?v=2"></script>
+<script>
+/*
+ * ============================================================
+ * 城池帝国 - 核心游戏引擎
+ * ============================================================
+ */
+
+const Game = {
+  // 核心配置
+  Config: {
+    DESIGN_WIDTH: 1280,
+    DESIGN_HEIGHT: 720,
+    // 取得 APP 备案编号后在此填写，并随最终包一起发布。
+    APP_FILING_NO: '',
+    
+    // 资源类型
+    RESOURCES: ['grain', 'stone', 'wood', 'gold'],
+    RESOURCE_NAMES: {
+      grain: '粮食',
+      stone: '石料',
+      wood: '木材',
+      gold: '金币'
+    },
+    
+    // 四大区域配置（增加地理坐标）
+    REGIONS: {
+      nw: {
+        name: '西北荒漠',
+        desc: '资源贫瘠，产出缓慢，可招募骑兵',
+        color: '#D4A574',
+        baseResources: { grain: 50, stone: 150, wood: 30, gold: 20 },
+        troops: ['cavalry'],
+        mapArea: { x: 0.15, y: 0.25, width: 0.35, height: 0.35 } // 左上区域
+      },
+      ne: {
+        name: '东北极寒',
+        desc: '极寒之地，特产冰晶石，可招募冰法师',
+        color: '#6B9BD1',
+        baseResources: { grain: 80, stone: 50, wood: 100, gold: 40 },
+        troops: ['wizard'],
+        mapArea: { x: 0.6, y: 0.2, width: 0.3, height: 0.35 } // 右上区域
+      },
+      c: {
+        name: '中原核心',
+        desc: '富饶之地，资源丰富，可招募步兵',
+        color: '#2D6B45',
+        baseResources: { grain: 200, stone: 150, wood: 150, gold: 100 },
+        troops: ['infantry'],
+        mapArea: { x: 0.35, y: 0.35, width: 0.3, height: 0.3 } // 中心区域
+      },
+      s: {
+        name: '南荒区域',
+        desc: '热带丛林，物产丰盛，可招募弓手',
+        color: '#4A7C59',
+        baseResources: { grain: 120, stone: 80, wood: 200, gold: 60 },
+        troops: ['archer'],
+        mapArea: { x: 0.25, y: 0.65, width: 0.5, height: 0.3 } // 下方区域
+      }
+    },
+    
+    // 建筑配置
+    BUILDINGS: {
+      hall: {
+        name: '城镇中心',
+        emoji: '🏛️',
+        maxLevel: 30,
+        cost: (lv) => ({ grain: 100 * lv, stone: 50 * lv, wood: 30 * lv, gold: 10 * lv }),
+        benefit: (lv) => `+${lv * 2}% 整体资源产出`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.15) // 1-5分钟
+      },
+      farm: {
+        name: '农场',
+        emoji: '🌾',
+        maxLevel: 25,
+        cost: (lv) => ({ grain: 50 * lv, stone: 20 * lv, wood: 30 * lv, gold: 5 * lv }),
+        benefit: (lv) => `+${50 + lv * 10} 粮食/分钟`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.16), // 1-5分钟
+        storage: (lv) => 5000 + lv * 500 // 基础5000，每级+500
+      },
+      mine: {
+        name: '矿场',
+        emoji: '⛏️',
+        maxLevel: 25,
+        cost: (lv) => ({ grain: 30 * lv, stone: 100 * lv, wood: 20 * lv, gold: 15 * lv }),
+        benefit: (lv) => `+${40 + lv * 8} 石料/分钟`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.16), // 1-5分钟
+        storage: (lv) => 3000 + lv * 300 // 基础3000，每级+300
+      },
+      lumber: {
+        name: '伐木场',
+        emoji: '🌲',
+        maxLevel: 25,
+        cost: (lv) => ({ grain: 40 * lv, stone: 20 * lv, wood: 60 * lv, gold: 8 * lv }),
+        benefit: (lv) => `+${60 + lv * 12} 木材/分钟`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.16), // 1-5分钟
+        storage: (lv) => 4000 + lv * 400 // 基础4000，每级+400
+      },
+      bank: {
+        name: '金库',
+        emoji: '🏦',
+        maxLevel: 20,
+        cost: (lv) => ({ grain: 80 * lv, stone: 80 * lv, wood: 40 * lv, gold: 50 * lv }),
+        benefit: (lv) => `+${20 + lv * 5} 金币/分钟`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.2), // 1-5分钟
+        storage: (lv) => 2000 + lv * 300 // 基础2000，每级+300
+      },
+      barracks: {
+        name: '兵营',
+        emoji: '⚔️',
+        maxLevel: 25,
+        cost: (lv) => ({ grain: 100 * lv, stone: 60 * lv, wood: 50 * lv, gold: 30 * lv }),
+        benefit: (lv) => `可训练${100 + lv * 20}支军队`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.16) // 1-5分钟
+      },
+      wall: {
+        name: '城墙',
+        emoji: '🛡️',
+        maxLevel: 30,
+        cost: (lv) => ({ grain: 60 * lv, stone: 150 * lv, wood: 40 * lv, gold: 20 * lv }),
+        benefit: (lv) => `+${lv * 5}% 防御`,
+        time: (lv) => Math.min(5, 1 + (lv - 1) * 0.15) // 1-5分钟
+      }
+    },
+
+    // 兵种配置
+    TROOP_TYPES: {
+      infantry: { name: '步兵', emoji: '🪖', attack: 10, defense: 8, speed: 5, cost: { gold: 10 } },
+      cavalry: { name: '骑兵', emoji: '🐴', attack: 15, defense: 6, speed: 15, cost: { gold: 20 } },
+      wizard: { name: '冰法师', emoji: '🧊', attack: 20, defense: 4, speed: 10, cost: { gold: 25 } },
+      archer: { name: '弓手', emoji: '🏹', attack: 12, defense: 5, speed: 8, cost: { gold: 15 } }
+    }
+  },
+
+  // 游戏状态
+  state: {
+    city: {
+      name: '主城',
+      level: 1,
+      resources: { grain: 1000, stone: 500, wood: 600, gold: 300 },
+      resourcesMax: { grain: 5000, stone: 3000, wood: 4000, gold: 2000 },
+      // 初始基础人口固定 1000（数值来自 GameBalance 参数表）
+      population: (window.GameBalance ? GameBalance.population.initial : 1000),
+      taxRate: 0,   // 税率档位（双向制衡：越高人口增长越慢、金币收益越多）
+      items: {},    // 秘籍道具背包 { itemKey: qty }
+      buffs: [],    // 生效中的秘籍增益 [{ key, name, kind, target, mul, until }]
+      troops: {},
+      buildings: {
+        hall: { level: 1, progress: 0, upgrading: false },
+        farm: { level: 1, progress: 0, upgrading: false },
+        mine: { level: 1, progress: 0, upgrading: false },
+        lumber: { level: 1, progress: 0, upgrading: false },
+        bank: { level: 1, progress: 0, upgrading: false },
+        barracks: { level: 1, progress: 0, upgrading: false },
+        wall: { level: 1, progress: 0, upgrading: false }
+      },
+      createdAt: Date.now(),
+      protectionEndTime: Date.now() + 86400000, // 24 小时保护期
+      mapPosition: null // 城池在地图上的位置 {x, y, region}
+    },
+    selectedBuilding: 'hall',
+    currentScene: 'city'
+  },
+
+  // 初始化游戏
+  init() {
+    this.Loading.init();
+    this.Screen.init();
+    this.Responsive.init();
+    this.Time.start();
+    this.Render.start();
+    this.Events.bind();
+    // 存档按账号隔离：登录完成后再载入（见 Loading.afterLogin）
+    this._defaultState = JSON.parse(JSON.stringify(this.state));
+    if (!window.Auth) this.loadState();
+
+    // 延迟初始化 UI 以确保主界面已加载
+    setTimeout(() => {
+      this.UI.init();
+    }, 500);
+  },
+
+  // 加载系统
+  Loading: {
+    progress: 0,
+    
+    init() {
+      const cover = document.getElementById('loading-screen');
+      // 登录后直接进游戏：有城池进城池，没城池先去地图选址建城
+      const done = () => { Game.switchScene(Game.state.city.mapPosition ? 'city' : 'world'); };
+      if (!window.IntroLoading) { if (cover) cover.style.display = 'none'; Game.CityView && Game.CityView.init(); return setTimeout(done, 0); }
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      IntroLoading.start({
+        minDuration: 5200,
+        onDone: done,
+        // 加载完成后停在同一战火背景上显示登录面板
+        afterLoad: window.LoginScreen && window.Auth
+          ? intro => LoginScreen.run(intro).then(() => this.afterLogin())
+          : null,
+        tasks: [
+          { label: '点燃烽火', weight: 1, run: () => { if (cover) cover.style.display = 'none'; return wait(500); } },
+          { label: '召集诸侯', weight: 1, run: () => (document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, wait(1500)]) : wait(300)).then(() => IntroLoading.refreshTitle()) },
+          { label: '铺展山河舆图', weight: 1, run: () => wait(600) },
+          { label: '筑造三维城池', weight: 3, run: () => { Game.CityView && Game.CityView.init(); return wait(200); } },
+          { label: '清点粮草军械', weight: 1, run: () => wait(500) },
+          { label: '整肃三军', weight: 1, run: () => wait(400) }
+        ]
+      });
+    },
+    /** 登录后：换成该账号的存档（云端优先），并刷新界面 */
+    async afterLogin() {
+      const data = await Auth.pullSave();
+      const fresh = JSON.parse(JSON.stringify(Game._defaultState));
+      Object.keys(Game.state).forEach(k => delete Game.state[k]);
+      Object.assign(Game.state, fresh, data || {});
+      Game.migrateState();
+      Game.UI.resumeUpgrades(); // 恢复升级进度
+      try {
+        Game.UI.updateResources(); Game.UI.updateBuildings(); Game.UI.updateProtectionStatus();
+        if (Game.CityView && Game.CityView.syncBuildings) Game.CityView.syncBuildings();
+        if (window.Progression && Progression.refresh) Progression.refresh();
+      } catch (e) { console.warn('刷新界面失败', e); }
+      // 登录后启动社交模块：军报 / 私聊 / 征伐（SSE 实时通道 + 玩家快照同步）
+      if (window.Social) Social.init();
+    }
+  },
+
+  // 响应式布局系统
+  Responsive: {
+    currentOrientation: window.innerWidth > window.innerHeight ? 'landscape' : 'portrait',
+    transformTimeout: null,
+    
+    init() {
+      this.detectOrientation();
+      window.addEventListener('orientationchange', () => this.onOrientationChange());
+      window.addEventListener('resize', () => this.onResize());
+    },
+    
+    detectOrientation() {
+      const isLandscape = window.innerWidth > window.innerHeight;
+      const newOrientation = isLandscape ? 'landscape' : 'portrait';
+      
+      if (newOrientation !== this.currentOrientation) {
+        this.currentOrientation = newOrientation;
+        this.applyOrientationStyles();
+      }
+    },
+    
+    onOrientationChange() {
+      if (this.transformTimeout) clearTimeout(this.transformTimeout);
+      
+      this.transformTimeout = setTimeout(() => {
+        this.detectOrientation();
+      }, 50);
+    },
+    
+    onResize() {
+      this.detectOrientation();
+    },
+    
+    applyOrientationStyles() {
+      const stage = document.getElementById('stage');
+      const root = document.getElementById('game-root');
+      
+      if (this.currentOrientation === 'portrait') {
+         root.style.transform = 'rotate(0deg)';
+       } else {
+         root.style.transform = 'rotate(0deg)';
+       }
+     }
+   },
+
+  // 屏幕管理
+  Screen: {
+    init() {
+      const stage = document.getElementById('stage');
+      const canvas = document.getElementById('bg-canvas');
+      const root = document.getElementById('game-root');
+      // 旋转横屏舞台时必须以左上角为原点，否则竖屏设备会把舞台移出视口。
+      stage.style.transformOrigin = '0 0';
+
+      canvas.width = window.innerWidth * window.devicePixelRatio;
+      canvas.height = window.innerHeight * window.devicePixelRatio;
+
+      const resize = () => {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const DW = 1280, DH = 720;
+        
+        let scale, tx, ty, rot = 0;
+        if (vw >= vh) {
+          // 横屏
+          scale = Math.min(vw / DW, vh / DH);
+          tx = (vw - DW * scale) / 2;
+          ty = (vh - DH * scale) / 2;
+        } else {
+          // 竖屏 - 旋转 90° 强制横屏
+          scale = Math.min(vh / DW, vw / DH);
+          tx = (vw + DH * scale) / 2;
+          ty = (vh - DW * scale) / 2;
+          rot = 90;
+        }
+        
+        stage.style.transform = `translate(${tx}px,${ty}px) rotate(${rot}deg) scale(${scale})`;
+      };
+
+      resize();
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+
+      // 尝试全屏和屏幕方向锁定
+      if (document.documentElement.requestFullscreen) {
+        root.addEventListener('click', async () => {
+          try {
+            await document.documentElement.requestFullscreen();
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock('landscape').catch(() => {});
+            }
+          } catch (e) {}
+        }, { once: true });
+      }
+    }
+  },
+
+  // UI 管理
+  UI: {
+    init() {
+      this.updateResources();
+      this.updateBuildings();
+      this.updateProtectionStatus();
+      this.bindActions();
+    },
+
+    showSettings() {
+      Game.Modal.show('游戏设置', `
+        <div style="padding:14px 18px; line-height:1.8;">
+          <div style="padding:10px 12px; background:rgba(212,165,116,0.1); border:1px solid var(--panel-line); border-radius:4px;">
+            <strong>《城池帝国》</strong><br>
+            <span style="font-size:12px; color:var(--text-dim);">版本 v1.0 · 单机策略城建</span><br>
+            <span style="font-size:11px; color:var(--text-dim);">APP备案号：${Game.Config.APP_FILING_NO || '待取得后填写'} · <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" style="color:var(--accent);">查询</a></span>
+          </div>
+          <div style="margin-top:16px; font-size:13px;">
+            <a href="privacy-policy.html" target="_blank" rel="noopener" style="color:var(--accent);">隐私政策</a>
+            <span style="color:var(--text-dim);"> · </span>
+            <a href="user-agreement.html" target="_blank" rel="noopener" style="color:var(--accent);">用户协议</a>
+          </div>
+          ${window.Auth && Auth.user ? `<div style="margin-top:16px; font-size:13px;">当前账号：<strong>${String(Auth.user.nickname || '无名主公').replace(/[&<>"']/g, '')}</strong>
+            <span style="color:var(--text-dim); font-size:12px;">（${Auth.isGuest ? '游客，仅本机存档' : '云端存档已开启'}）</span></div>
+          <button type="button" id="logoutBtn" style="margin-top:12px; width:100%; padding:10px; color:#f3e2bd; background:transparent; border:1px solid var(--accent-dark); border-radius:3px; cursor:pointer;">退出登录</button>` : ''}
+          <button type="button" id="clearLocalSaveBtn" style="margin-top:12px; width:100%; padding:10px; color:#f3d6c5; background:transparent; border:1px solid rgba(204,68,68,.55); border-radius:3px; cursor:pointer;">清除本机存档</button>
+          <p style="margin-top:8px; font-size:11px; color:var(--text-dim);">${window.Auth && Auth.user && !Auth.isGuest ? '只清除本设备上的缓存；云端存档会在下次登录时重新下载。' : '游客存档只保存在本设备中，清除后无法恢复。'}</p>
+        </div>
+      `, [
+        { text: '关闭', action: () => Game.Modal.close() }
+      ]);
+
+      document.getElementById('clearLocalSaveBtn')?.addEventListener('click', () => {
+        if (!window.confirm('确定清除本设备上的游戏存档吗？此操作不可撤销。')) return;
+        localStorage.removeItem(window.Auth ? Auth.saveKey() : 'gameState');
+        Game.Modal.close();
+        window.location.reload();
+      });
+      document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+        if (window.Social) Social.destroy();
+        await Auth.logout();
+        window.location.reload();
+      });
+    },
+
+    bindActions() {
+      const citySettingsBtn = document.getElementById('citySettingsBtn');
+      if (citySettingsBtn) citySettingsBtn.addEventListener('click', () => this.showSettings());
+
+      // 我的资料：头像 / 昵称 / 游客引继码与升级为正式账号
+      const cityProfileBtn = document.getElementById('cityProfileBtn');
+      if (cityProfileBtn) cityProfileBtn.addEventListener('click', () => {
+        if (window.Profile) Profile.open();
+        else Game.showStatus('资料面板未加载', 'warn');
+      });
+
+      const cityAboutBtn = document.getElementById('cityAboutBtn');
+      if (cityAboutBtn) cityAboutBtn.addEventListener('click', () => {
+        Game.Modal.show('游戏介绍', `
+          <div style="padding:20px; line-height:1.8;">
+            <p style="margin-bottom:15px;"><strong>《城池帝国》</strong></p>
+            <p style="color:var(--text-dim); margin-bottom:10px;">
+              这是一款古风策略城建游戏。在四大区域中选择位置建造城池，
+              发展经济、招募人口、训练军队，打造属于你的帝国。
+            </p>
+            <p style="color:var(--text-dim); margin-top:15px;">
+              🏗️ 建造：选择区域，建立城池<br>
+              📈 发展：升级建筑，增加产出<br>
+              👥 招募：扩充人口，壮大实力<br>
+              ⚔️ 征战：训练军队，征服四方
+            </p>
+          </div>
+        `, [
+          { text: '关闭', action: () => Game.Modal.close() }
+        ]);
+      });
+      
+      // 城池管理按钮
+      const viewMapBtn = document.getElementById('viewMapBtn');
+      const backFromMapBtn = document.getElementById('backFromMapBtn');
+      const friendsBtn = document.getElementById('friendsBtn');
+      const recruitBtn = document.getElementById('recruitBtn');
+      const trainBtn = document.getElementById('trainBtn');
+      const upgradeBtn = document.getElementById('upgradeBtn');
+      const buildBtn = document.getElementById('buildBtn');
+
+      if (viewMapBtn) viewMapBtn.addEventListener('click', () => Game.switchScene('world'));
+      if (friendsBtn) friendsBtn.addEventListener('click', () => openFriendsPanel());
+      const visitBackBtn = document.getElementById('visitBackBtn');
+      if (visitBackBtn) visitBackBtn.addEventListener('click', () => Game.switchScene('world'));
+      if (backFromMapBtn) backFromMapBtn.addEventListener('click', () => {
+        // 还没建城时不能返回空城池，先提示选址
+        if (!Game.state.city.mapPosition) { Game.showStatus('请先在地图上选择位置建造城池', 'warn'); return; }
+        // 清除访问模式，返回自己的城池
+        Game.visitingCity = null;
+        Game.switchScene('city');
+      });
+      if (recruitBtn) recruitBtn.addEventListener('click', () => this.showRecruitDialog());
+      if (trainBtn) trainBtn.addEventListener('click', () => this.showTrainDialog());
+      if (upgradeBtn) upgradeBtn.addEventListener('click', () => {
+        // 取消自动关闭
+        if (this._autoCollapseTimer) {
+          clearTimeout(this._autoCollapseTimer);
+          this._autoCollapseTimer = null;
+        }
+        this.showUpgradeDialog();
+      });
+      if (buildBtn) buildBtn.addEventListener('click', () => this.showBuildDialog());
+
+      // 跨级升级：面板内目标等级步进器（实时刷新累计花费与总时长）
+      document.getElementById('upgradeTargetMinus')?.addEventListener('click', () => {
+        // 取消自动关闭
+        if (this._autoCollapseTimer) {
+          clearTimeout(this._autoCollapseTimer);
+          this._autoCollapseTimer = null;
+        }
+        const key = Game.state.selectedBuilding;
+        Game.UI.setUpgradeTarget(key, Game.UI.getUpgradeTarget(key) - 1);
+      });
+      document.getElementById('upgradeTargetPlus')?.addEventListener('click', () => {
+        // 取消自动关闭
+        if (this._autoCollapseTimer) {
+          clearTimeout(this._autoCollapseTimer);
+          this._autoCollapseTimer = null;
+        }
+        const key = Game.state.selectedBuilding;
+        Game.UI.setUpgradeTarget(key, Game.UI.getUpgradeTarget(key) + 1);
+      });
+      // 建筑详情面板收起/展开：仅由用户手动触发，任何情况下都不会自动收起
+      document.getElementById('detailToggleBtn')?.addEventListener('click', () => this.toggleDetail());
+
+      // 税率 / 秘籍背包 / 拍卖行（由 progression.js、auction.js 提供）
+      document.getElementById('taxRateBtn')?.addEventListener('click', () => window.Progression && Progression.openTaxDialog());
+      document.getElementById('manualBtn')?.addEventListener('click', () => window.Progression && Progression.openBagDialog());
+      document.getElementById('auctionBtn')?.addEventListener('click', () => window.Auction && Auction.open());
+      // 拍卖会（开放日活动，由 auction-fair.js 提供）
+      document.getElementById('fairBtn')?.addEventListener('click', () => window.AuctionFair && AuctionFair.open());
+      if (window.Progression && Progression.refresh) Progression.refresh();
+    },
+
+    updateResources() {
+      const container = document.getElementById('resourcesContainer');
+      if (!container) return; // 如果容器不存在则跳过
+      // 兜底：城池数据可能不完整（例如参观他城的旧存档），缺字段时按 0 处理，避免抛错中断渲染
+      const city = Game.state.city || {};
+      const resources = city.resources || {};
+      const resourcesMax = city.resourcesMax || {};
+      container.innerHTML = '';
+      
+      Game.Config.RESOURCES.forEach(res => {
+        const curr = Number(resources[res]) || 0;
+        const max = Math.max(1, Number(resourcesMax[res]) || 0);
+        const prod = this.calculateResourceProduction(res);
+        const name = Game.Config.RESOURCE_NAMES[res];
+        const full = curr >= max;
+        const pct = Math.min(100, (curr / max) * 100).toFixed(1);
+
+        // 单字印章 + 数值 + 每分钟产量；底部细条表示仓储占用
+        const html = `
+          <div class="hud-res hud-res-${res}${full ? ' is-full' : ''}" title="${name} ${Math.floor(curr)} / ${max}">
+            <i class="hud-glyph">${name.charAt(0)}</i>
+            <span class="hud-res-num">
+              <b>${Math.floor(curr).toLocaleString('zh-CN')}</b>
+              <small>${full ? '满仓' + max : (prod > 0 ? '+' + prod : prod) + '/分'}</small>
+            </span>
+            <span class="hud-res-fill" style="width:${pct}%"></span>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+
+      const populationValue = document.getElementById('populationValue');
+      const troopsValue = document.getElementById('troopsValue');
+      const cityLevelValue = document.getElementById('cityLevelValue');
+
+      if (populationValue) populationValue.textContent = Math.floor(Number(city.population) || 0);
+      if (troopsValue) troopsValue.textContent = Object.values(city.troops || {}).reduce((a, b) => a + (Number(b) || 0), 0);
+      if (cityLevelValue) cityLevelValue.textContent = city.level || 1;
+      this.updateSelectedCost();
+    },
+
+    updateBuildings() {
+      const container = document.getElementById('buildingsContainer');
+      if (!container) return; // 如果容器不存在则跳过
+      // 兜底：建筑数据可能缺失，缺字段时按 1 级处理
+      const cityBuildings = (Game.state.city && Game.state.city.buildings) || {};
+      container.innerHTML = '';
+      
+      Object.entries(Game.Config.BUILDINGS).forEach(([key, cfg]) => {
+        const building = cityBuildings[key] || { level: 1, progress: 0, upgrading: false };
+        const progress = (Number(building.progress) || 0) * 100;
+        
+        const html = `
+          <button type="button" class="hud-tile${building.upgrading ? ' is-upgrading' : ''}" data-building="${key}" aria-pressed="${Game.state.selectedBuilding === key}">
+            <span class="hud-tile-icon">${cfg.emoji || '🏛️'}</span>
+            <div class="hud-tile-info">
+              <span class="hud-tile-name">${cfg.name}</span>
+              <span class="hud-tile-lv">${building.upgrading ? ('升级中' + (building.upgradeTo ? ' → Lv.' + building.upgradeTo : '')) : 'Lv.' + (building.level || 1)}</span>
+            </div>
+            ${building.upgrading ? `<span class="hud-tile-bar"><span style="width:${progress}%"></span></span>` : ''}
+          </button>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+
+      container.querySelectorAll('.hud-tile').forEach(card => {
+        card.addEventListener('click', () => {
+          Game.state.selectedBuilding = card.dataset.building;
+          container.querySelectorAll('.hud-tile').forEach(c => c.setAttribute('aria-pressed', String(c === card)));
+          if (Game.CityView) Game.CityView.selectBuilding(card.dataset.building);
+          this.updateSelectedCost();
+          
+          // 展开建筑详情面板
+          this.toggleDetail(false);
+          
+          // 5秒后自动关闭面板
+          this.scheduleAutoCollapse();
+        });
+      });
+
+      this.updateSelectedCost();
+      if (Game.CityView) Game.CityView.syncBuildings();
+    },
+
+    /* ===== 跨级升级：目标等级与累计计划 ===== */
+    _upgradeTargetKey: null,
+    _upgradeTargetLevel: null,
+
+    /**
+     * 当前选中建筑的升级目标等级。
+     * 取值范围为 [当前等级+1, maxLevel]；切换建筑或建筑升级后会自动重新夹紧。
+     */
+    getUpgradeTarget(building) {
+      const cfg = Game.Config.BUILDINGS[building];
+      const b = ((Game.state.city && Game.state.city.buildings) || {})[building];
+      if (!cfg || !b) return 1;
+      const cur = Math.max(1, Math.floor(Number(b.level) || 1));
+      const max = cfg.maxLevel;
+      // 切换建筑时，目标等级默认回到"当前等级 + 1"
+      if (this._upgradeTargetKey !== building || !Number.isFinite(this._upgradeTargetLevel)) {
+        this._upgradeTargetKey = building;
+        this._upgradeTargetLevel = Math.min(max, cur + 1);
+      }
+      const target = Math.min(max, Math.max(cur + 1, Math.round(this._upgradeTargetLevel)));
+      this._upgradeTargetLevel = target;
+      return target;
+    },
+
+    setUpgradeTarget(building, level) {
+      const cfg = Game.Config.BUILDINGS[building];
+      const b = ((Game.state.city && Game.state.city.buildings) || {})[building];
+      if (!cfg || !b) return;
+      const cur = Math.max(1, Math.floor(Number(b.level) || 1));
+      this._upgradeTargetKey = building;
+      this._upgradeTargetLevel = Math.min(cfg.maxLevel, Math.max(cur + 1, Math.round(Number(level) || cur + 1)));
+      this.updateSelectedCost();
+    },
+
+    /**
+     * 从当前等级升到 toLevel 的累计计划。
+     * 花费 = 逐级 cost 累加；时长 = 逐级 time 累加（分钟），与用户确认的规则一致。
+     */
+    calcUpgradePlan(building, toLevel) {
+      const cfg = Game.Config.BUILDINGS[building];
+      const b = ((Game.state.city && Game.state.city.buildings) || {})[building] || {};
+      const from = Math.max(1, Math.floor(Number(b.level) || 1));
+      const max = cfg ? cfg.maxLevel : from;
+      const to = Math.min(max, Math.max(from, Math.floor(Number(toLevel) || from)));
+      const cost = {};
+      let minutes = 0;
+      for (let lv = from + 1; lv <= to; lv++) {
+        Object.entries(cfg.cost(lv) || {}).forEach(([res, n]) => {
+          cost[res] = (cost[res] || 0) + (Number(n) || 0);
+        });
+        minutes += Number(cfg.time(lv)) || 0;
+      }
+      return { cost, minutes, levels: to - from, from, to };
+    },
+
+    /** 手动收起/展开建筑详情面板。仅在用户点击时切换，绝不自动收起。 */
+    toggleDetail(force) {
+      const panel = document.getElementById('hudDetail');
+      if (!panel) return;
+      const collapsed = (typeof force === 'boolean') ? force : !panel.classList.contains('is-collapsed');
+      panel.classList.toggle('is-collapsed', collapsed);
+      const btn = document.getElementById('detailToggleBtn');
+      if (btn) {
+        btn.setAttribute('aria-expanded', String(!collapsed));
+        btn.setAttribute('aria-label', collapsed ? '展开建筑面板' : '收起建筑面板');
+      }
+      
+      // 如果是展开面板，取消自动关闭定时器
+      if (!collapsed && this._autoCollapseTimer) {
+        clearTimeout(this._autoCollapseTimer);
+        this._autoCollapseTimer = null;
+      }
+    },
+    
+    /** 计划5秒后自动关闭建筑详情面板 */
+    scheduleAutoCollapse() {
+      // 清除之前的定时器
+      if (this._autoCollapseTimer) {
+        clearTimeout(this._autoCollapseTimer);
+      }
+      
+      // 5秒后自动关闭
+      this._autoCollapseTimer = setTimeout(() => {
+        this.toggleDetail(true); // true = 收起面板
+        this._autoCollapseTimer = null;
+      }, 5000);
+    },
+
+    /** 选中建筑：展示目标等级的累计花费与总时长（支持跨级），资源不足的项标红 */
+    updateSelectedCost() {
+      const el = document.getElementById('selectedBuildingCost');
+      const key = Game.state.selectedBuilding;
+      const cfg = Game.Config.BUILDINGS[key];
+      const city = Game.state.city || {};
+      const b = (city.buildings || {})[key];
+      const resources = city.resources || {};
+      if (!el || !cfg || !b) return;
+
+      const cur = Math.max(1, Math.floor(Number(b.level) || 1));
+      const atMax = cur >= cfg.maxLevel;
+      const target = this.getUpgradeTarget(key);
+
+      // 同步目标等级控件状态
+      const row = document.getElementById('upgradeTargetRow');
+      const label = document.getElementById('upgradeTargetLevel');
+      const minus = document.getElementById('upgradeTargetMinus');
+      const plus = document.getElementById('upgradeTargetPlus');
+      const upgradeBtn = document.getElementById('upgradeBtn');
+      if (label) label.textContent = 'Lv.' + target;
+      if (row) row.hidden = atMax;
+      if (minus) minus.disabled = atMax || target <= cur + 1;
+      if (plus) plus.disabled = atMax || target >= cfg.maxLevel;
+      if (upgradeBtn) upgradeBtn.disabled = atMax || !!b.upgrading;
+
+      if (b.upgrading) {
+        const toLv = Math.floor(Number(b.upgradeTo)) || cur + 1;
+        const pct = Math.round((Number(b.progress) || 0) * 100);
+        el.innerHTML = `正在升级 → Lv.${toLv}（${pct}%）`;
+        return;
+      }
+      if (atMax) { el.innerHTML = '已达最高等级 Lv.' + cfg.maxLevel; return; }
+
+      const plan = this.calcUpgradePlan(key, target);
+      const parts = Object.entries(plan.cost).map(([res, n]) => {
+        const lack = (Number(resources[res]) || 0) < n;
+        return `<span class="${lack ? 'lack' : ''}">${Game.Config.RESOURCE_NAMES[res].charAt(0)} ${n}</span>`;
+      });
+      parts.push(`<span class="hud-cost-time">⏱ ${plan.minutes} 分</span>`);
+      const span = plan.levels > 1 ? `（跨 ${plan.levels} 级）` : '';
+      el.innerHTML = `升至 Lv.${target}${span}：` + parts.join('');
+    },
+
+    calculateResourceProduction(resource) {
+      const buildingMap = {
+        grain: 'farm',
+        stone: 'mine',
+        wood: 'lumber',
+        gold: 'bank'
+      };
+
+      const building = buildingMap[resource];
+      if (!building) return 0;
+
+      // 兜底：参观他人城池或数据不完整时，建筑对象可能缺失。
+      // 这里若直接取 .level 会抛异常，且该函数每秒被主循环调用，
+      // 一旦抛错会中断整个 update()，表现为城池场景"消失/不渲染"。
+      const builds = (Game.state && Game.state.city && Game.state.city.buildings) || {};
+      const level = (builds[building] && builds[building].level) || 0;
+      const baseProduction = {
+        grain: 50,
+        stone: 40,
+        wood: 60,
+        gold: 20
+      };
+
+      const hallBonus = 1 + ((builds.hall && builds.hall.level) || 1) * 0.02;
+      let prod = Math.floor((baseProduction[resource] + level * 10) * hallBonus);
+      // 秘籍增益：命中该资源时乘算（数值来自 GameBalance.buffs）
+      const mult = Game.productionMult(resource);
+      if (mult !== 1) prod = Math.floor(prod * mult);
+      return prod;
+    },
+
+    updateProtectionStatus() {
+      const badge = document.getElementById('protectionBadge');
+      if (!badge) return; // 如果元素不存在则跳过
+      const city = Game.state.city || {};
+      const remaining = Math.max(0, (Number(city.protectionEndTime) || 0) - Date.now());
+      
+      if (remaining > 0) {
+        const hours = Math.floor(remaining / 3600000);
+        const mins = Math.floor((remaining % 3600000) / 60000);
+        badge.textContent = hours > 0 ? `免战 ${hours} 时 ${mins} 分` : `免战 ${mins} 分`;
+        badge.classList.remove('is-ended');
+      } else {
+        badge.textContent = '免战已结束';
+        badge.classList.add('is-ended');
+      }
+    },
+
+    showRecruitDialog() {
+      // 移除保护期限制，玩家随时可以招募人口
+      
+      Game.Modal.show('招募人口', `
+        <div class="input-group">
+          <label class="input-label">招募人口数量（每次消耗 10 粮食）</label>
+          <input type="number" id="recruitAmount" min="1" max="1000" value="100">
+        </div>
+        <div style="color:var(--text-dim); font-size:12px;">
+          当前粮食：${Game.state.city.resources.grain} / 消耗：<span id="recruitCost">1000</span>
+        </div>
+      `, [
+        { text: '招募', action: () => this.recruitPopulation() },
+        { text: '取消', action: () => Game.Modal.close() }
+      ]);
+
+      document.getElementById('recruitAmount').addEventListener('input', (e) => {
+        const cost = parseInt(e.target.value) * 10;
+        document.getElementById('recruitCost').textContent = cost;
+      });
+    },
+
+    recruitPopulation() {
+      const amount = parseInt(document.getElementById('recruitAmount').value);
+      const cost = amount * 10;
+
+      if (Game.state.city.resources.grain < cost) {
+        Game.showStatus('粮食不足', 'error');
+        return;
+      }
+
+      Game.state.city.resources.grain -= cost;
+      Game.state.city.population += amount;
+      Game.Modal.close();
+      this.updateResources();
+      Game.showStatus(`成功招募 ${amount} 人`, 'success');
+      Game.saveState();
+    },
+
+    showTrainDialog() {
+      // 移除保护期限制，玩家随时可以训练军队
+      
+      const currentTroops = Object.values(Game.state.city.troops).reduce((a, b) => a + (b || 0), 0);
+      const maxTroops = Game.maxTroops();
+      const troopCap = Math.floor(Game.state.city.population * (window.GameBalance ? GameBalance.troop.maxRatio : 0.1));
+      const remain = Math.max(0, maxTroops - currentTroops);
+
+      let options = '<div style="margin:10px 0;">';
+      Object.entries(Game.Config.TROOP_TYPES).forEach(([key, cfg]) => {
+        options += `
+          <div style="padding:10px; background:rgba(0,0,0,0.2); border-radius:6px; margin:8px 0;">
+            <div style="font-weight:bold;">${cfg.emoji} ${cfg.name}</div>
+            <div style="font-size:11px; color:var(--text-dim); margin:4px 0;">
+              攻击:${cfg.attack} 防御:${cfg.defense} 速度:${cfg.speed} | 成本:${cfg.cost.gold}金币
+            </div>
+            <input type="number" class="troop-input" data-troop="${key}" min="0" max="${remain}" value="0" style="width:100%; padding:6px; margin-top:4px;">
+          </div>
+        `;
+      });
+      options += '</div>';
+
+      Game.Modal.show('训练军队', `
+        <div style="color:var(--text-dim); font-size:12px;">可训练容量：${currentTroops}/${maxTroops}（人口 10% 上限 ${troopCap}）</div>
+        ${options}
+      `, [
+        { text: '训练', action: () => this.trainTroops() },
+        { text: '取消', action: () => Game.Modal.close() }
+      ]);
+    },
+
+    trainTroops() {
+      let totalCost = 0, totalCount = 0;
+      const troops = {};
+
+      document.querySelectorAll('.troop-input').forEach(input => {
+        const amount = parseInt(input.value) || 0;
+        if (amount > 0) {
+          const troopKey = input.dataset.troop;
+          troops[troopKey] = amount;
+          totalCount += amount;
+          totalCost += amount * Game.Config.TROOP_TYPES[troopKey].cost.gold;
+        }
+      });
+
+      if (totalCount === 0) { Game.showStatus('请先填写训练人数', 'warn'); return; }
+
+      // 硬上限：军队总数 ≤ 当前总人口 × troop.maxRatio（人口 10%），不可突破
+      const currentTroops = Object.values(Game.state.city.troops).reduce((a, b) => a + (b || 0), 0);
+      const cap = Game.maxTroops();
+      if (currentTroops + totalCount > cap) {
+        Game.showStatus(`军队总数不可超过 ${cap}（当前人口 10% 上限）`, 'error');
+        return;
+      }
+
+      if (totalCost > Game.state.city.resources.gold) {
+        Game.showStatus('金币不足', 'error');
+        return;
+      }
+
+      Game.state.city.resources.gold -= totalCost;
+      Object.entries(troops).forEach(([key, count]) => {
+        Game.state.city.troops[key] = (Game.state.city.troops[key] || 0) + count;
+      });
+
+      Game.Modal.close();
+      this.updateResources();
+      Game.showStatus('军队训练完成', 'success');
+      Game.saveState();
+    },
+
+    showUpgradeDialog() {
+      const building = Game.state.selectedBuilding;
+      const cfg = Game.Config.BUILDINGS[building];
+      const state = ((Game.state.city && Game.state.city.buildings) || {})[building];
+      if (!cfg || !state) { Game.showStatus('建筑数据缺失，无法升级', 'error'); return; }
+
+      if (state.upgrading) { Game.showStatus(`${cfg.name}正在升级中，请稍候`, 'warn'); return; }
+      const cur = Math.max(1, Math.floor(Number(state.level) || 1));
+      if (cur >= cfg.maxLevel) { Game.showStatus('该建筑已达到最高等级', 'warn'); return; }
+
+      // 支持跨级升级：直接升到面板中选择的目标等级，展示累计花费与累计时长
+      const target = this.getUpgradeTarget(building);
+      const plan = this.calcUpgradePlan(building, target);
+      const resources = Game.state.city.resources || {};
+
+      let costHtml = '<div style="margin:10px 0;">';
+      Object.entries(plan.cost).forEach(([res, amount]) => {
+        const have = Number(resources[res]) || 0;
+        const lack = have < amount;
+        costHtml += `<div style="${lack ? 'color:var(--danger);' : ''}">
+          ${Game.Config.RESOURCE_NAMES[res]}: ${amount} (拥有: ${have})
+        </div>`;
+      });
+      costHtml += '</div>';
+
+      const span = plan.levels > 1 ? `（一次性跨 ${plan.levels} 级）` : '';
+      Game.Modal.show(`升级 ${cfg.name}`, `
+        当前等级: Lv.${cur} → Lv.${target} ${span}
+        ${costHtml}
+        升级总时长: ${plan.minutes} 分钟（逐级累加）
+        升级效果: ${cfg.benefit(target)}
+      `, [
+        { text: '确认升级', action: () => this.confirmUpgrade(building, target) },
+        { text: '取消', action: () => Game.Modal.close() }
+      ]);
+    },
+
+    confirmUpgrade(building, targetLevel) {
+      const cfg = Game.Config.BUILDINGS[building];
+      const state = ((Game.state.city && Game.state.city.buildings) || {})[building];
+      if (!cfg || !state) return;
+      if (state.upgrading) { Game.Modal.close(); Game.showStatus('该建筑正在升级中', 'warn'); return; }
+
+      const cur = Math.max(1, Math.floor(Number(state.level) || 1));
+      const target = Math.min(cfg.maxLevel, Math.max(cur + 1, Math.floor(Number(targetLevel) || cur + 1)));
+      const plan = this.calcUpgradePlan(building, target);
+      if (plan.levels <= 0) { Game.Modal.close(); Game.showStatus('目标等级无效', 'warn'); return; }
+
+      // 资源校验：累计花费任一项不足即中止，不扣任何资源
+      const resources = Game.state.city.resources || {};
+      for (const [res, amount] of Object.entries(plan.cost)) {
+        if ((Number(resources[res]) || 0) < amount) {
+          Game.showStatus(`资源不足：${Game.Config.RESOURCE_NAMES[res]} 需要 ${amount}`, 'error');
+          return;
+        }
+      }
+      for (const [res, amount] of Object.entries(plan.cost)) {
+        resources[res] = (Number(resources[res]) || 0) - amount;
+      }
+
+      state.upgrading = true;
+      state.progress = 0;
+      state.upgradeTo = target;           // 记录目标等级，供面板与建筑栏展示
+      state.upgradeStartTime = Date.now(); // 保存开始时间
+      state.upgradeDuration = Math.max(1, plan.minutes) * 60000; // 保存持续时间（毫秒）
+
+      this.startUpgradeTimer(building);
+
+      Game.Modal.close();
+      this.updateResources();
+      this.updateBuildings();
+      Game.saveState();
+    },
+
+    // 启动或恢复建筑升级定时器
+    startUpgradeTimer(building) {
+      const cfg = Game.Config.BUILDINGS[building];
+      const state = ((Game.state.city && Game.state.city.buildings) || {})[building];
+      if (!cfg || !state || !state.upgrading) return;
+
+      // 如果已有定时器在运行，先清除
+      if (state._upgradeTimer) {
+        clearInterval(state._upgradeTimer);
+        state._upgradeTimer = null;
+      }
+
+      const startTime = state.upgradeStartTime || Date.now();
+      const duration = state.upgradeDuration || 60000;
+      const target = state.upgradeTo || (state.level + 1);
+
+      state._upgradeTimer = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        state.progress = Math.min(elapsed / duration, 1);
+
+        if (state.progress >= 1) {
+          clearInterval(state._upgradeTimer);
+          state._upgradeTimer = null;
+          state.level = target;
+          state.upgrading = false;
+          state.progress = 0;
+          state.upgradeTo = null;
+          state.upgradeStartTime = null;
+          state.upgradeDuration = null;
+          
+          // 升级完成后更新仓库容量
+          Game.state.city.resourcesMax = Game.calculateStorageCapacity();
+          
+          Game.showStatus(`${cfg.name}升级到 Lv.${target}`, 'success');
+          Game.saveState();
+        }
+
+        this.updateBuildings();
+      }, 100);
+    },
+
+    // 恢复所有正在进行的升级
+    resumeUpgrades() {
+      const buildings = (Game.state.city && Game.state.city.buildings) || {};
+      let hasCompleted = false;
+      
+      for (const [building, state] of Object.entries(buildings)) {
+        if (state && state.upgrading) {
+          // 检查是否已经超时完成
+          const elapsed = Date.now() - (state.upgradeStartTime || 0);
+          const duration = state.upgradeDuration || 0;
+          
+          if (elapsed >= duration && duration > 0) {
+            // 直接完成升级
+            const cfg = Game.Config.BUILDINGS[building];
+            state.level = state.upgradeTo || (state.level + 1);
+            state.upgrading = false;
+            state.progress = 0;
+            state.upgradeTo = null;
+            state.upgradeStartTime = null;
+            state.upgradeDuration = null;
+            hasCompleted = true;
+            if (cfg) {
+              Game.showStatus(`${cfg.name}升级完成`, 'success');
+            }
+          } else {
+            // 恢复定时器
+            this.startUpgradeTimer(building);
+          }
+        }
+      }
+      
+      // 如果有建筑升级完成，更新仓库容量
+      if (hasCompleted) {
+        Game.state.city.resourcesMax = Game.calculateStorageCapacity();
+      }
+      
+      if (Object.values(buildings).some(s => s && s.upgrading) || hasCompleted) {
+        Game.saveState();
+      }
+    },
+
+    showBuildDialog() {
+      Game.showStatus('建设新建筑功能开发中...', 'warn');
+    }
+  },
+
+  // 时间推进系统
+  Time: {
+    lastUpdateTime: Date.now(),
+
+    start() {
+      setInterval(() => this.update(), 1000);
+    },
+
+    update() {
+      const now = Date.now();
+      const deltaSeconds = (now - this.lastUpdateTime) / 1000;
+      this.lastUpdateTime = now;
+
+      // 兜底：城池数据不完整（例如参观他城的旧存档）时跳过本轮推进。
+      // 该函数每秒执行，一旦抛错会中断后续 UI 刷新，表现为城池场景"消失/不渲染"。
+      const city = Game.state && Game.state.city;
+      if (!city || !city.resources || !city.resourcesMax) return;
+
+      // 资源自动增长
+      Game.Config.RESOURCES.forEach(res => {
+        const cur = Number(city.resources[res]) || 0;
+        const max = Math.max(1, Number(city.resourcesMax[res]) || 0);
+        const production = Game.UI.calculateResourceProduction(res);
+        const increment = production * deltaSeconds / 60; // 每分钟产出
+
+        city.resources[res] = Math.min(cur + increment, max);
+      });
+
+      // 人口自然增长 + 税收金币（公式与曲线全部来自 GameBalance 参数表）
+      const B = window.GameBalance;
+      if (B && Number.isFinite(Number(city.population))) {
+        const growthPerHour = B.helpers.populationGrowthPerHour(city.population, city.taxRate);
+        city.population = Math.min(B.population.cap, city.population + growthPerHour * deltaSeconds / 3600);
+        const goldPerHour = B.helpers.taxGoldPerHour(city.population, city.taxRate);
+        if (goldPerHour > 0) {
+          const goldMax = Math.max(1, Number(city.resourcesMax.gold) || 0);
+          city.resources.gold = Math.min((Number(city.resources.gold) || 0) + goldPerHour * deltaSeconds / 3600, goldMax);
+        }
+      }
+
+      // 更新UI
+      Game.UI.updateResources();
+      Game.UI.updateProtectionStatus();
+    }
+  },
+
+  // 渲染系统
+  Render: {
+    canvas: null,
+    ctx: null,
+
+    start() {
+      this.canvas = document.getElementById('bg-canvas');
+      this.ctx = this.canvas.getContext('2d');
+      this.animate();
+    },
+
+    animate() {
+      this.drawBackground();
+      requestAnimationFrame(() => this.animate());
+    },
+
+    drawBackground() {
+      const w = this.canvas.width;
+      const h = this.canvas.height;
+
+      const gradient = this.ctx.createLinearGradient(0, 0, w, h);
+      gradient.addColorStop(0, '#0f1419');
+      gradient.addColorStop(1, '#1a1f26');
+
+      this.ctx.fillStyle = gradient;
+      this.ctx.fillRect(0, 0, w, h);
+
+      // 绘制装饰粒子
+      this.ctx.fillStyle = 'rgba(212, 165, 116, 0.1)';
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 1, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+    }
+  },
+
+  // 事件系统
+  Events: {
+    bind() {
+      // 城池操作按钮（原有逻辑）
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('region-card')) {
+          const regionKey = e.target.dataset.region;
+          Game.showRegionDetail(regionKey);
+        }
+      });
+    }
+  },
+
+  // 模态对话框
+  Modal: {
+    show(title, content, buttons = []) {
+      const modal = document.getElementById('modal');
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalContent').innerHTML = content;
+
+      const btnContainer = document.getElementById('modalButtons');
+      btnContainer.innerHTML = '';
+
+      buttons.forEach(btn => {
+        const btnEl = document.createElement('button');
+        btnEl.textContent = btn.text;
+        btnEl.className = btn.text === '取消' ? 'btn-secondary' : 'btn-primary';
+        btnEl.addEventListener('click', btn.action);
+        btnContainer.appendChild(btnEl);
+      });
+
+      modal.classList.add('show');
+    },
+
+    close() {
+      document.getElementById('modal').classList.remove('show');
+    }
+  },
+
+  // 场景管理
+  visitingCity: null,   // 正在参观的地图城池（不写入存档）
+  previewBackup: null,  // 参观他人城池时暂存的自己的城池数据（仅内存，绝不写入存档）
+
+  /**
+   * 归一化城池数据：补齐所有必备字段。
+   * 他人城池（服务端云存档）可能来自旧版本或数据不完整，缺 resources / buildings 等字段时，
+   * 主循环与 HUD 刷新会因读取 undefined 抛异常，表现为城池场景空白/不渲染。
+   * 这里统一补全，保证任何来源的数据都能安全渲染。
+   */
+  normalizeCity(raw, fallbackName) {
+    const defaults = (this._defaultState && this._defaultState.city) || {};
+    const c = (raw && typeof raw === 'object') ? { ...raw } : {};
+    const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v) : d);
+
+    c.name = c.name || fallbackName || defaults.name || '城池';
+    c.level = Math.max(1, Math.floor(num(c.level, defaults.level || 1)));
+    c.population = Math.max(1, num(c.population, defaults.population || 1000));
+    c.taxRate = num(c.taxRate, defaults.taxRate || 0);
+    c.protectionEndTime = num(c.protectionEndTime, 0);
+    c.mapPosition = c.mapPosition || null;
+
+    // 资源 / 资源上限：逐项补默认值，上限至少为 1，避免做除数时得到 Infinity/NaN
+    const defRes = defaults.resources || { grain: 0, stone: 0, wood: 0, gold: 0 };
+    const defMax = defaults.resourcesMax || { grain: 1, stone: 1, wood: 1, gold: 1 };
+    c.resources = Object.assign({}, defRes, (c.resources && typeof c.resources === 'object') ? c.resources : {});
+    c.resourcesMax = Object.assign({}, defMax, (c.resourcesMax && typeof c.resourcesMax === 'object') ? c.resourcesMax : {});
+    this.Config.RESOURCES.forEach(res => {
+      c.resources[res] = num(c.resources[res], 0);
+      c.resourcesMax[res] = Math.max(1, num(c.resourcesMax[res], defMax[res] || 1));
+    });
+
+    // 建筑：以配置表为准逐个补齐，缺失建筑按初始等级处理
+    const defBuildings = defaults.buildings || {};
+    const srcBuildings = (c.buildings && typeof c.buildings === 'object') ? c.buildings : {};
+    const buildings = {};
+    Object.keys(this.Config.BUILDINGS).forEach(key => {
+      const d = defBuildings[key] || { level: 1 };
+      const s = srcBuildings[key] || {};
+      buildings[key] = {
+        level: Math.max(1, Math.floor(num(s.level, d.level || 1))),
+        progress: num(s.progress, 0),
+        upgrading: !!s.upgrading
+      };
+    });
+    c.buildings = buildings;
+
+    c.troops = (c.troops && typeof c.troops === 'object') ? c.troops : {};
+    c.items = (c.items && typeof c.items === 'object') ? c.items : {};
+    c.buffs = Array.isArray(c.buffs) ? c.buffs.filter(b => b && Number(b.until) > Date.now()) : [];
+    return c;
+  },
+
+  /**
+   * 进入参观预览：暂存自己的城池数据，替换为对方城池（只读）
+   * 统一入口，避免各处直接改写 state.city 造成状态残留
+   */
+  enterPreviewCity(city) {
+    if (!city || typeof city !== 'object') return false;
+    if (!this.previewBackup) this.previewBackup = this.state.city;
+    // 归一化后再切换，杜绝他城数据缺字段导致主循环抛错的连锁反应
+    this.state.city = Object.assign(this.normalizeCity(city, city.name), { readonly: true, preview: true });
+    return true;
+  },
+
+  /** 退出参观预览：还原自己的城池数据，并清理预览返回按钮 */
+  exitPreviewCity() {
+    if (!this.previewBackup) return false;
+    this.state.city = this.previewBackup;
+    this.previewBackup = null;
+    const btn = document.querySelector('.preview-return-btn');
+    if (btn) btn.remove();
+    return true;
+  },
+
+  /** 是否正处于参观他人城池的预览状态 */
+  get inCityPreview() { return !!this.previewBackup; },
+
+  switchScene(sceneName) {
+    const target = document.querySelector(`[data-scene="${sceneName}"]`);
+    if (!target) { console.warn('场景不存在:', sceneName); return; }
+
+    // 当从世界地图返回城池视图且不是访问他人城池时，清除访问模式
+    if (sceneName === 'city' && !Game.visitingCity) {
+      // 确保清除访问模式
+      Game.visitingCity = null;
+    }
+
+    // 离开城池场景时，必须还原自己的城池数据。
+    // 否则参观预览的他城数据会残留在内存中，甚至被存档保存，导致自己的城池消失或加载异常。
+    if (sceneName !== 'city' && this.previewBackup) {
+      this.exitPreviewCity();
+    }
+
+    // 场景切换时关闭玩家信息面板（避免世界地图的面板残留在城池场景）
+    if (window.OnlineMap && window.OnlineMap.hidePlayerInfo) {
+      window.OnlineMap.hidePlayerInfo();
+    }
+
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    target.classList.add('active');
+    Game.state.currentScene = sceneName;
+    if (Game.CityView) Game.CityView.setActive(sceneName === 'city');
+
+    if (sceneName === 'world') {
+      this.renderWorldMap();
+    } else if (sceneName === 'city') {
+      // 更新城池名称：参观他城时显示对方城名
+      const visiting = Game.visitingCity;
+      const cityNameEl = document.getElementById('cityName');
+      if (cityNameEl) {
+        cityNameEl.textContent = visiting ? visiting.name : Game.state.city.name;
+      }
+      target.classList.toggle('visiting', !!visiting);
+      const banner = document.getElementById('visitBanner');
+      if (banner) {
+        banner.hidden = !visiting;
+        const bannerName = document.getElementById('visitBannerName');
+        if (bannerName && visiting) bannerName.textContent = `${visiting.name} · ${visiting.type}`;
+      }
+      // 任一 UI 刷新失败都不能阻断三维城池渲染，否则会出现"场景空白/不渲染"
+      try {
+        Game.UI.updateResources();
+        Game.UI.updateBuildings();
+        Game.UI.updateProtectionStatus();
+      } catch (e) {
+        console.warn('[Game] 刷新城池 UI 失败，已跳过:', e);
+      }
+      if (Game.CityView) Game.CityView.show();
+    }
+  },
+
+  // 参观世界地图上已建成的城池：复用同一套三维城池模型
+  visitCity(place) {
+    if (!place) return;
+    Game.visitingCity = place;
+    this.switchScene('city');
+    this.showStatus(`正在参观 ${place.name}（${place.region} · ${place.type}）`, 'info');
+  },
+
+  renderWorldMap() {
+    if (Game.WorldMap) Game.WorldMap.show();
+  },
+
+  showRegionDetail(regionKey, mapX, mapY) {
+    if (Game.WorldMap) Game.WorldMap.selectSite(mapX, mapY);
+  },
+
+  buildCity() {
+    if (Game.WorldMap) Game.WorldMap.commitSite();
+  },
+
+  showStatus(msg, type = 'info') {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.style.borderColor = {
+      success: 'var(--ok)',
+      error: 'var(--danger)',
+      warn: 'var(--warn)',
+      info: 'var(--panel-line)'
+    }[type] || 'var(--panel-line)';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+  },
+
+  // ---------- 玩法派生数值（数值全部依据 balance-config.js 的参数表） ----------
+  /** 军队数量硬上限：取「兵营容量」与「当前人口 × troop.maxRatio」的较小值，不可突破 */
+  maxTroops() {
+    const B = window.GameBalance;
+    const c = Game.state.city || {};
+    const barracksLv = ((c.buildings || {}).barracks || {}).level || 1;
+    const byBuilding = 100 + barracksLv * 20;
+    const ratio = B ? B.troop.maxRatio : 0.1;
+    const byPopulation = Math.floor((Number(c.population) || 0) * ratio);
+    return Math.max(0, Math.min(byBuilding, byPopulation));
+  },
+  /** 资源产出倍率：生效中的生产类秘籍增益（同名取最大倍率，异名乘算） */
+  productionMult(resource) {
+    const buffs = (Game.state.city.buffs || []).filter(b => b && b.kind === 'production' && b.target === resource && b.until > Date.now());
+    if (!buffs.length) return 1;
+    const best = new Map();
+    buffs.forEach(b => best.set(b.key, Math.max(best.get(b.key) || 1, Number(b.mul) || 1)));
+    return [...best.values()].reduce((a, b) => a * b, 1);
+  },
+  /** 战力倍率：生效中的战力类秘籍增益，随玩家快照上报，参与服务端 PvP 结算 */
+  powerMult() {
+    const buffs = (Game.state.city.buffs || []).filter(b => b && b.kind === 'power' && b.until > Date.now());
+    if (!buffs.length) return 1;
+    const best = new Map();
+    buffs.forEach(b => best.set(b.key, Math.max(best.get(b.key) || 1, Number(b.mul) || 1)));
+    return [...best.values()].reduce((a, b) => a * b, 1);
+  },
+  
+  /** 根据建筑等级计算仓库容量 */
+  calculateStorageCapacity() {
+    const buildings = (Game.state.city && Game.state.city.buildings) || {};
+    const resourcesMax = {};
+    
+    // 粮食仓库 = 农场等级
+    const farmLevel = (buildings.farm && buildings.farm.level) || 1;
+    const farmCfg = Game.Config.BUILDINGS.farm;
+    resourcesMax.grain = farmCfg && farmCfg.storage ? farmCfg.storage(farmLevel) : 5000;
+    
+    // 石料仓库 = 矿场等级
+    const mineLevel = (buildings.mine && buildings.mine.level) || 1;
+    const mineCfg = Game.Config.BUILDINGS.mine;
+    resourcesMax.stone = mineCfg && mineCfg.storage ? mineCfg.storage(mineLevel) : 3000;
+    
+    // 木材仓库 = 伐木场等级
+    const lumberLevel = (buildings.lumber && buildings.lumber.level) || 1;
+    const lumberCfg = Game.Config.BUILDINGS.lumber;
+    resourcesMax.wood = lumberCfg && lumberCfg.storage ? lumberCfg.storage(lumberLevel) : 4000;
+    
+    // 金币仓库 = 金库等级
+    const bankLevel = (buildings.bank && buildings.bank.level) || 1;
+    const bankCfg = Game.Config.BUILDINGS.bank;
+    resourcesMax.gold = bankCfg && bankCfg.storage ? bankCfg.storage(bankLevel) : 2000;
+    
+    return resourcesMax;
+  },
+  
+  /** 存档兼容：补齐新增字段、清理过期增益，保证老存档可直接读入 */
+  migrateState() {
+    const B = window.GameBalance;
+    const c = Game.state && Game.state.city;
+    if (!c) return;
+    const initPop = B ? B.population.initial : 1000;
+    if (!Number.isFinite(Number(c.population)) || Number(c.population) < 1) c.population = initPop;
+    const levels = B ? B.tax.levels : [0, 10, 20, 30, 40, 50];
+    if (!levels.includes(Number(c.taxRate))) c.taxRate = levels[0];
+    if (!c.items || typeof c.items !== 'object') c.items = {};
+    if (!Array.isArray(c.buffs)) c.buffs = [];
+    c.buffs = c.buffs.filter(b => b && Number(b.until) > Date.now()); // 启动清理过期增益
+    if (!c.troops || typeof c.troops !== 'object') c.troops = {}; // 初始化军队对象
+    
+    // 初始化建筑对象
+    if (!c.buildings || typeof c.buildings !== 'object') {
+      c.buildings = {
+        hall: { level: 1, progress: 0, upgrading: false },
+        farm: { level: 1, progress: 0, upgrading: false },
+        mine: { level: 1, progress: 0, upgrading: false },
+        lumber: { level: 1, progress: 0, upgrading: false },
+        bank: { level: 1, progress: 0, upgrading: false },
+        barracks: { level: 1, progress: 0, upgrading: false },
+        wall: { level: 1, progress: 0, upgrading: false }
+      };
+    } else {
+      // 确保每个建筑都有基本字段
+      const defaultBuildings = ['hall', 'farm', 'mine', 'lumber', 'bank', 'barracks', 'wall'];
+      defaultBuildings.forEach(building => {
+        if (!c.buildings[building]) {
+          c.buildings[building] = { level: 1, progress: 0, upgrading: false };
+        }
+      });
+    }
+    
+    // 根据建筑等级更新仓库容量
+    c.resourcesMax = Game.calculateStorageCapacity();
+  },
+
+  // 本地存储
+  saveState() {
+    // 参观他人城池预览期间禁止写入存档与对外广播，
+    // 否则他城数据会覆盖自己的存档（本地 + 云存档），导致自己的城池永久丢失
+    if (this.previewBackup) return;
+    try {
+      localStorage.setItem(window.Auth ? Auth.saveKey() : 'gameState', JSON.stringify(Game.state));
+      if (window.Auth) Auth.queueCloudSave(Game.state);
+      // 同步玩家社交快照（城名/坐标/资源/兵力），供周边玩家与征伐使用
+      if (window.Social) Social.syncPlayerState();
+    } catch (e) {
+      console.error('保存游戏状态失败:', e);
+    }
+  },
+
+  loadState() {
+    try {
+      const saved = localStorage.getItem(window.Auth ? Auth.saveKey() : 'gameState');
+      if (saved) {
+        Object.assign(Game.state, JSON.parse(saved));
+        Game.migrateState();
+        Game.UI.resumeUpgrades(); // 恢复升级进度
+      }
+    } catch (e) {
+      console.error('加载游戏状态失败:', e);
+    }
+  }
+};
+
+// 启动游戏
+window.addEventListener('load', () => Game.init());
+</script>
+<script src="city3d.js?v=13"></script>
+    <script src="world-city.js?v=17"></script>
+    <script src="progression.js?v=13"></script>
+    <script src="auction.js?v=13"></script>
+    <script src="auction-fair.js?v=1"></script>
+
+</body>
+</html>
