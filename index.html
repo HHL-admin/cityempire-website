@@ -291,14 +291,20 @@ function switchTab(platform) {
   document.getElementById(platform + '-guide').classList.add('active');
 }
 
-async function downloadAPK() {
-      // 显示提示
-      if (confirm('正在为您准备APK安装包...\n\n由于APK文件较大，建议您先体验"添加到主屏幕"功能，\n效果与原生APP完全一样！\n\n点击"确定"体验网页版，点击"取消"了解APK下载方式。')) {
-        window.location.href = 'cities.html';
-      } else {
-        alert('APK下载方式：\n\n1. 使用手机浏览器打开本页面\n2. 点击浏览器菜单 → "添加到主屏幕"\n3. 图标会添加到手机桌面\n4. 点击图标即可全屏运行游戏\n\n如需独立APK文件，请访问我们的GitHub发布页：\nhttps://github.com/hhl-admin/cityempire-website/releases');
-      }
-    }
+function downloadAPK() {
+  // 直接下载APK文件
+  const link = document.createElement('a');
+  link.href = 'cityempire.apk';
+  link.download = 'cityempire.apk';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  // 显示安装提示
+  setTimeout(() => {
+    alert('APK下载中...\n\n下载完成后：\n1. 打开APK文件\n2. 允许"安装未知来源应用"\n3. 按照提示完成安装\n4. 从桌面图标启动游戏！\n\n文件大小：约30MB');
+  }, 500);
+}
 </script>
 
 </body>
