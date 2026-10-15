@@ -191,6 +191,38 @@ nav {
   color: #667eea;
 }
 
+.download-card .card-status {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.3rem;
+  color: #333;
+}
+
+.download-card .card-hint {
+  font-size: 0.85rem;
+  color: #999;
+  margin: 0;
+}
+
+.pwa-notice {
+  background: #f8f9ff;
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.pwa-notice p {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.pwa-notice strong {
+  color: #667eea;
+}
+
 /* 智能客服按钮 */
 .ai-chat-btn {
   position: fixed;
