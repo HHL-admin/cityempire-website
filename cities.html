@@ -1534,21 +1534,20 @@ const Game = {
         const vh = window.innerHeight;
         const DW = 1280, DH = 720;
         
-        let scale, tx, ty, rot = 0;
+        let scale, tx, ty;
         if (vw >= vh) {
-          // 横屏
+          // 横屏 - 正常显示
           scale = Math.min(vw / DW, vh / DH);
           tx = (vw - DW * scale) / 2;
           ty = (vh - DH * scale) / 2;
+          stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
         } else {
-          // 竖屏 - 旋转 90° 强制横屏
+          // 竖屏 - 旋转90度适配
           scale = Math.min(vh / DW, vw / DH);
-          tx = (vw + DH * scale) / 2;
-          ty = (vh - DW * scale) / 2;
-          rot = 90;
+          tx = vw / 2;
+          ty = vh / 2;
+          stage.style.transform = `translate(${tx}px, ${ty}px) rotate(90deg) scale(${scale}) translate(-${DW/2}px, -${DH/2}px)`;
         }
-        
-        stage.style.transform = `translate(${tx}px,${ty}px) rotate(${rot}deg) scale(${scale})`;
       };
 
       resize();
