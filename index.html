@@ -200,9 +200,14 @@ h1 {
   <h1>城市帝国</h1>
   <p class="subtitle">城市建设与经营游戏</p>
   
+  <button class="download-btn" onclick="downloadAPK()">
+    <span class="platform-icon">📥</span>
+    安卓下载 APK
+  </button>
+  
   <a href="cities.html" class="download-btn web-btn">
     <span class="platform-icon">🎮</span>
-    立即开始游戏
+    网页版游戏（无需下载）
   </a>
   
   <div class="features">
@@ -234,13 +239,21 @@ h1 {
     
     <div id="android-guide" class="tab-content active">
       <div class="install-steps">
-        <strong>Chrome浏览器：</strong>
+        <strong>方式1：下载APK安装（推荐）</strong>
         <ol>
-          <li>点击上方<strong>"立即开始游戏"</strong></li>
+          <li>点击上方<strong>"安卓下载 APK"</strong>按钮</li>
+          <li>下载完成后，打开APK文件</li>
+          <li>允许<strong>"安装未知来源应用"</strong></li>
+          <li>按照提示完成安装</li>
+          <li>从桌面图标启动游戏！</li>
+        </ol>
+        <br>
+        <strong>方式2：添加网页到桌面</strong>
+        <ol>
+          <li>点击<strong>"网页版游戏"</strong>进入游戏</li>
           <li>点击浏览器右上角 <strong>⋮ 菜单</strong></li>
-          <li>选择<strong>"添加到主屏幕"</strong>或<strong>"安装应用"</strong></li>
-          <li>确认后，桌面将出现游戏图标</li>
-          <li>像原生APP一样打开游戏！</li>
+          <li>选择<strong>"添加到主屏幕"</strong></li>
+          <li>桌面将出现游戏图标</li>
         </ol>
       </div>
     </div>
@@ -249,12 +262,15 @@ h1 {
       <div class="install-steps">
         <strong>Safari浏览器：</strong>
         <ol>
-          <li>点击上方<strong>"立即开始游戏"</strong></li>
+          <li>点击<strong>"网页版游戏"</strong>进入游戏</li>
           <li>点击底部<strong>分享按钮</strong> <span style="font-size: 16px;">⎋</span></li>
           <li>向下滑动，选择<strong>"添加到主屏幕"</strong></li>
           <li>点击右上角<strong>"添加"</strong></li>
           <li>桌面将出现游戏图标，全屏体验！</li>
         </ol>
+        <p style="margin-top: 15px; color: #999; font-size: 13px;">
+          注：苹果系统不支持APK安装包，请使用网页版。
+        </p>
       </div>
     </div>
   </div>
@@ -273,6 +289,17 @@ function switchTab(platform) {
     content.classList.remove('active');
   });
   document.getElementById(platform + '-guide').classList.add('active');
+}
+
+function downloadAPK() {
+  // 检查是否有APK文件
+  const apkUrl = './city-empire.apk';
+  
+  // 显示提示信息
+  alert('APK安装包正在准备中...\n\n暂时请使用下方"网页版游戏"按钮体验游戏，\n或按照下方教程"添加到主屏幕"，\n效果与原生APP一样！');
+  
+  // TODO: 当APK准备好后，取消注释下面的代码
+  // window.location.href = apkUrl;
 }
 </script>
 
